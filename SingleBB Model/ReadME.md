@@ -1,7 +1,7 @@
 # PRISM MDP Model – Single Blinky Block (BB)
 
 This repository contains a PRISM Markov Decision Process (MDP) model of a **single Blinky Block (BB)**.  
-The model serves as a **baseline abstraction** that can be later extended to represent **clusters** of BBs arranged in different motifs (e.g., line, rectangle) with synchronization between modules.
+The model serves as a **baseline abstraction** that can be later extended to represent **clusters** of BBs arranged in different motifs (e.g., line, rectangle) with or without synchronization between modules.
 
 The goal of this version is to:
 - Capture the **local self-adaptive behaviour** of one BB.
@@ -114,3 +114,6 @@ const double q_w_high_c1; // base success prob: white LED at high level
 const double q_b_high_c1; // base success prob: blue LED at high level
 const double q_r_high_c1; // base success prob: red LED at high level
 const double q_high_pitch_c1; // base success prob: high pitch
+
+const double beta1;//=1.022;// success improvement factor when state is MED W.R.T High
+const double beta2;//=1.05;// success improvement factor when state is low W.R.T High
