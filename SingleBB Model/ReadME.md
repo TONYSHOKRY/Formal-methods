@@ -89,7 +89,7 @@ Environment transitions influence the BB’s state by:
 - Triggering **sensing tasks**, and
 - Changing success/failure probabilities for actuation (e.g. movement increasing failure risk at higher intensities).
 
-### 2.4 `Feature_Controller` – Task Counter and Activation
+### 2.4 `Task_Controller` – Task Counter and  modules Activation
 
 The `Feature_Controller` module:
 
