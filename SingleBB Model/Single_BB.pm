@@ -77,7 +77,7 @@ endmodule
 const int N1 = 1;
 
 
-module Feature_Controller
+module task_Controller
   task_counter : [0..2] init 0;
   active1 : bool init true;
 
