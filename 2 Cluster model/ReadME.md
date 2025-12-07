@@ -198,7 +198,7 @@ Compared to earlier, simpler MDPs / DTMCs, this full model now includes:
 This folder **does not yet** contain a fully “finished” model. Planned upgrades:
 
 1. **Parameter calibration**
-   - Instantiate all constants (`theta`, `beta1`, `beta2`, `gamma`, `alpha2`, `q_*`) with values derived from **real measurements**:
+   - Instantiate all constants on different scenarios (`theta`, `beta1`, `beta2`, `gamma`, `alpha2`, `q_*`) with values derived from **real measurements**:
      - per-color success rates,
      - per-pitch success rates,
      - line vs rectangle experiments,
@@ -210,10 +210,8 @@ This folder **does not yet** contain a fully “finished” model. Planned upgra
      - **increased failure probability** in cluster 2 due to distance from the power source and wiring constraints.
 
 3. **Reward structures & properties**
-   - Add reward structures for:
+   - review reward structures for:
      - energy consumption,
-     - number of successful tasks,
-     - failure penalties.
    - Add `.props` / `.csl` file with PCTL / CSL properties for verification:
      - probability of task success,
      - expected energy use,
