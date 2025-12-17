@@ -8,7 +8,13 @@ This folder contains the **full Markov Decision Process (MDP) model** of **two B
 The model is written for **PRISM** (and can be ported to STORM).
 
 ---
+## About
 
+Clusters represent **groups of physically connected Blinky Blocks (BBs)** that receive the same task command and are powered and coordinated together. In this model, a cluster is an abstraction in which the detailed internal behavior of multiple BBs is **collapsed into a single representative state machine** capturing the dominant execution mode of the cluster (e.g., high/medium/low actuation, sensing active, task success or failure). This abstraction is designed to preserve qualitative reachability and safety properties (such as task completion, failure, and energy-aware fallback behavior), while abstracting away per-block timing, packet-level communication, and exact internal coordination.
+
+Tasks follow an abstract task execution scheme, not a formal logical system: each task corresponds to a predefined control phase in which clusters execute a selected actuation mode, possibly adapt their behavior based on environment or hardware feedback, and then terminate before the next task begins. The model captures a control and scheduling structure rather than a logical calculus.
+
+---
 ## Files in this folder
 
 - `two_clusters_full_model.prism`  
