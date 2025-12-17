@@ -1,0 +1,50 @@
+const int C1;
+
+Pmax=? [ F ("noHWEnv"&!"failed") ]
+
+Pmax=? [ F ("high_energy"&"failed") ]
+
+Pmax=? [ F ("failed"&"low_energy") ]
+
+Pmax=? [ F<=10 ("low_energy"&"failed") ]
+
+Pmin=? [ F<=10 ("low_energy"&"failed") ]
+
+Pmax=? [ F<=10 ("low_energy") ]
+
+Pmax=? [ F<=5 (s2=high_Led)&"noHWEnv" ]
+
+Pmin=? [ F<=5 (s2=low_Led)&("LED_color") ]
+
+Pmax=? [ (!"failed") U "success" ]
+
+Pmin=? [ (!"failed") U "success" ]
+
+Pmax=? [ ("failed") U "success" ]
+
+Pmax=? [ F<=4 ("failed") ]
+
+Pmax=? [ F<=2 ("success") ]
+
+Pmin=? [ F<=4 ("failed") ]
+
+Pmin=? [ F<=4 ("success") ]
+
+Pmax=? [ F<=2 ("failed") ]
+
+Pmax=? [ F<=3 ("failed") ]
+
+// What is the maximum probability that the system can always remain out of the high-energy region (LED high-power, high buzz, high pitch) for all future steps?
+Pmax=? [ G (!"high_energy") ]
+
+Pmax=? [ G (!"failed") ]
+
+// Probability of success given that hw_state=2 happened at some point
+filter(max, Pmax=? [ F "success" ], hw_state=2)
+
+Pmin=? [ G (!"failed") ]
+
+Pmax=? [ F("success") ]
+
+Pmax=? [ F<=C1 "success" ]
+
