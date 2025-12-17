@@ -42,7 +42,7 @@ Tasks follow an abstract task execution scheme, not a formal logical system: eac
   - **sensing states**: `listen_on_moving_on`, `listen_on_moving_off`,
     `listen_off_moving_on`.
 
-So each cluster is a **macro-state machine** aggregating the detailed per-block behavior.
+So each cluster is a **macro-state machine** collapse group of blocks behavior.
 
 ---
 
@@ -201,27 +201,6 @@ Compared to earlier, simpler MDPs / DTMCs, this full model now includes:
 
 ## What is still missing / planned future work
 
-This folder **does not yet** contain a fully “finished” model. Planned upgrades:
-
-1. **Parameter calibration**
-   - Instantiate all constants on different scenarios (`theta`, `beta1`, `beta2`, `gamma`, `alpha2`, `q_*`) with values derived from **real measurements**:
-     - per-color success rates,
-     - per-pitch success rates,
-     - line vs rectangle experiments,
-     - staggered vs simultaneous execution data.
-
-2. **Cluster 2 refinement**
-   - Currently, `c2` mostly mirrors `c1`.
-   - `alpha2` will be used to model:
-     - **increased failure probability** in cluster 2 due to distance from the power source and wiring constraints.
-
-3. **Reward structures & properties**
-   - review reward structures for:
-     - energy consumption,
-   - Add `.props` / `.csl` file with PCTL / CSL properties for verification:
-     - probability of task success,
-     - expected energy use,
-     - comparison between motifs and between staggered vs synchronous.
 
 4. **Tighter link to `usercode.c/h`**
    - Document and implement a clean mapping:
