@@ -202,12 +202,12 @@ Compared to earlier, simpler MDPs / DTMCs, this full model now includes:
 ## What is still missing / planned future work
 
 
-4. **Tighter link to `usercode.c/h`**
+1. **Tighter link to `usercode.c/h`**
    - Document and implement a clean mapping:
      - from PRISM states → firmware functions / API calls,
      - from hardware/Env feedback → real sensor readings (current sensor, MIC, ACC).
 
-5. **Cleanup & simplification**
+2. **Cleanup & simplification**
    - Review guards like `turn=0` for staggered mode and decide where they are strictly needed.
    - Factor out repeated patterns using PRISM formulae/macros where possible, to improve readability.
 
