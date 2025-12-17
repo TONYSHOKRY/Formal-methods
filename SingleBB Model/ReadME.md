@@ -99,6 +99,11 @@ The `Feature_Controller` module:
 
 This abstracts a simple managing layer that can activate/deactivate the BB and repeat tasks.
 
+### 2.5 `module pattern` – Motif Abstraction
+- Maintains the cluster motif if the size is more than 4BB, not a single BB **** (`Rec_motif ∈ {true,false}`),
+- Controls whether the BB is **line** (`Rec_motif` false),
+- Controls whether the BB is **Rectangle** (`Rec_motif` true),
+
 ---
 
 ## 3. Parameters, Probabilities, and Abstractions
@@ -115,5 +120,6 @@ const double q_b_high_c1; // base success prob: blue LED at high level
 const double q_r_high_c1; // base success prob: red LED at high level
 const double q_high_pitch_c1; // base success prob: high pitch
 
-const double beta1;//=1.022;// success improvement factor when state is MED W.R.T High
-const double beta2;//=1.05;// success improvement factor when state is low W.R.T High
+const double betai1;//=1.022;// success improvement factor when state is MED W.R.T High
+const double betai2;//=1.05;// success improvement factor when state is low W.R.T High
+const double theta;// success coefficient of rectangle W.r.t line motif
