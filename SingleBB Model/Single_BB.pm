@@ -2,6 +2,9 @@ mdp //Markov decision process
 
 // this Model represent a Markov decision process for only one BB
 
+////////////////////cluster sizes
+const int N1 = 1;
+//////////////////////////////
 
 // Constants for states
 const int start_task = 0;
@@ -26,6 +29,22 @@ const int low_Led = 16;
 const int task_failed = 17;
 const int finish = 18;
 const int idle = 19;
+
+
+/////////////////////////
+//labels
+label "failed" = (s1=task_failed) ;
+label "success" = (s1=finish);
+label "both_active" = active1 ;
+label "high_energy" = (s1=high_blink_high_buzz | s1=high_Led | s1=high_pitch) ;
+label "noHWEnv" =
+  (hw_state=0 & sound=0 & move=0 & env_state1=0 );
+label "low_energy" = (s1=med_blink_med_buzz | s1=low_Led | s1=low_pitch);
+label "LED_color" = (color1!=0) ;
+
+
+
+
 
 ////////////////////////////////////////////////
 //patterns coefficient
@@ -77,9 +96,6 @@ module Environment
   [reset_env1] env_state1!=0  & (s1=finish | s1=task_failed) -> (env_state1'=0);
 endmodule
 
-////////////////////cluster sizes
-const int N1 = 1;
-//////////////////////////////
 
 
 
