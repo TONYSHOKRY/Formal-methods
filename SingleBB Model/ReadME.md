@@ -97,6 +97,12 @@ The `Feature_Controller` module:
 - Controls whether the BB is **active** (`active1` flag),
 - Handles **reset** behaviour after `finish` or `task_failed` via the `[Task_increment]` action.
 
+The transitions from these states are **deterministic**, and their distributions depend on:
+- clusters reach absorbing state,
+- A task means the execution over block(s)
+- for abstraction and paths simulation, 3 tasks chosen to check the model,
+-  system could expand up to the user-defined task counter constant,
+
 This abstracts a simple managing layer that can activate/deactivate the BB and repeat tasks.
 
 ### 2.5 `module pattern` – Motif Abstraction
