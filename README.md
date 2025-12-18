@@ -33,5 +33,5 @@ From the repository root:
 
 ### 1) Single BB model
 ```bash
-prism "SingleBB Model/<MODEL_FILE>.prism" General_properties.pctl
+prism "SingleBB Model/single_BB.pm" General_properties.pctl
 
