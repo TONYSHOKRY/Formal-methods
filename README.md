@@ -39,13 +39,14 @@ From the repository root:
 ### 1) Single BB model
 ```bash
 prism "SingleBB Model/single_BB.pm" General_properties.pctl
-
+```
 
 
 
 
 
 ## Read the out.log File
+```bash
 PRISM
 =====
 
@@ -78,3 +79,4 @@ Transitions: 1315772
 Choices:     946036
 
 Transition matrix: 47704 nodes (1578 terminal), 1315772 minterms, vars: 30r/30c/34nd
+```
