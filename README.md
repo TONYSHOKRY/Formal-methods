@@ -6,6 +6,10 @@ It includes:
 - a **two-cluster** model (distributed / clustered behavior),
 - a shared set of **properties** that can be checked on both models (same labels).
 
+The goal of this artifact is to show how a self-adaptive system can be modelled and analysed with a conditional probabilistic, feature guarded transition system and a controller switching between features.
+
+**Authors:** Antonios Naguib, Olga Kouchnarenko, Frédéric Lassabe
+
 ## Repository structure
 
 - `SingleBB Model/`
@@ -22,6 +26,7 @@ It includes:
 ## Requirements
 
 - PRISM model checker (recommended: PRISM 4.7+)
+https://www.prismmodelchecker.org/download.php
 
 Optional:
 - Java (if required by your PRISM distribution)
