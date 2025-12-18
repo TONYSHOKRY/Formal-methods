@@ -26,7 +26,7 @@ The goal of this artifact is to show how a self-adaptive system can be modelled 
 ## Requirements
 
 - PRISM model checker (recommended: PRISM 4.7+)
-[PRISM download]([https://example.com](https://www.prismmodelchecker.org/download.php))
+[PRISM download](https://www.prismmodelchecker.org/download.php)
 
 Optional:
 - Java (if required by your PRISM distribution)
