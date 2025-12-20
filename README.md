@@ -81,3 +81,5 @@ Choices:     946036
 
 Transition matrix: 47704 nodes (1578 terminal), 1315772 minterms, vars: 30r/30c/34nd
 ```
+## Acknowledgments
+The authors are supported by the ANR ADAPT (grant number ANR-23-CE25-0004) and the EIPHI Graduate School (grant number ANR-17-EURE-0002).
