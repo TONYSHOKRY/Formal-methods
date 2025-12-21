@@ -7,7 +7,7 @@ It includes:
 - a shared set of **properties** that can be checked on both models (same labels).
 - scenario excerpt for the parameter extraction.
 
-The goal of this artifact is to show how a self-adaptive system can be modelled and analysed with a conditional probabilistic, feature guarded transition system and a controller switching between features.
+The goal of this artifact is to show how a self-adaptive system can be modelled and analysed with a conditional probabilistic, state guarded transition system and intervening controlling modules.
 
 **Authors:** Antonios Naguib, Olga Kouchnarenko, Frédéric Lassabe
 
@@ -15,11 +15,11 @@ The goal of this artifact is to show how a self-adaptive system can be modelled 
 
 - `SingleBB Model/`
   - PRISM model of a single Blinky Block scenario.
-  - Folder-specific README explains how to run it.
+  - Folder-specific README explains the model and how to run it.
 
 - `2 Cluster model/`
   - PRISM model with 2 clusters of BBs.
-  - Folder-specific README explains how to run it.
+  - Folder-specific README explains the model and how to run it.
 
 - `General_properties.pctl`
   - Properties intended to be runnable on both models (shared labels / shared semantics).
@@ -33,7 +33,7 @@ Optional:
 - Java (if required by your PRISM distribution)
 - Graphviz (only if you export graphs)
 
-## Quick start (run properties)
+## Quick start (build model)
 
 From the repository root:
 
