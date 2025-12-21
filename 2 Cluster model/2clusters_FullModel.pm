@@ -1,7 +1,18 @@
 mdp //Markov decision process
 
 // this Model represent a Markov decision process for 2 clsuters consists of tens of blocks
-
+//Labels
+label "failed" = (s1=task_failed) | (s2=task_failed);
+label "success" = (s1=finish) & (s2=finish);
+label "both_active" = active1 & active2;
+label "high_energy" = (s1=high_blink_high_buzz | s1=high_Led | s1=high_pitch) | 
+                     (s2=high_blink_high_buzz | s2=high_Led | s2=high_pitch);
+label "noHWEnv" =
+  (hw_state=0 & sound=0 & move=0 & env_state1=0 & env_state2=0);
+label "low_energy" = (s1=med_blink_med_buzz | s1=low_Led | s1=low_pitch) | 
+                     (s2=med_blink_med_buzz | s2=low_Led | s2=low_pitch);
+label "LED_color" = (color1!=0) | (color2!=0) ;
+//////
 
 // Constants for states
 const int start_task = 0;
