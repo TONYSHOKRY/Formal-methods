@@ -81,5 +81,26 @@ Choices:     946036
 
 Transition matrix: 47704 nodes (1578 terminal), 1315772 minterms, vars: 30r/30c/34nd
 ```
+## Replicate the prism experiments
+The files for replicating the PRISM experiments for the models can be found in the folder singleBB model as Single_BB.pm and folder 2 clusters model as 2clusters_Fullmodel.pm. The necessary property file, containing the properties used for the experiments, is General_properties.pctl in the same folder. The latter properties could be applied for both models.
+
+Open the PRISM GUI by opening the executable xprism that should have been downloaded when you downloaded PRISM. Open one of the model files by going to Model -> Open model and selecting file with the extension of **".pm"** Parse and build the model by pressing F2 and F3, respectively. Prism will ask about the scenario constants for both models. A user might import constants stated at the top of the model, or to define their own constants to discover the model more.
+
+To load the properties, go to the Properties Tab in the lower left corner. Open the properties list by going to Properties -> Open properties list and select General_properties.pctl. The GUI should now look like the following.
+<img width="1028" height="750" alt="image" src="https://github.com/user-attachments/assets/152bac67-57eb-4ef6-ba30-101851210139" />
+
+The experiments will use a variable named k for the number of time steps. To declare this variable, make a double click in the Constants field and change the name from C0 to k.
+
+To run an experiment, click one of the properties and press F7. In the dialog that opens, first decide which range your parameter should have, i.e., how many time steps you want to consider; in the paper we display the graph with 10 time steps. Click on Okay, give the graph a name and either print it to an already existing graph or to a new one.
+
+It is also possible to inspect the values that were calculated for the graph. To do that, in the Experiments part of xprism, do a right click on the property whose results you want to inspect and click on View results as shown in the picture below.
+
+<img width="1025" height="452" alt="image" src="https://github.com/user-attachments/assets/1471b097-28cf-468c-aed6-810ed508e8bb" />
+This will enable you to determine after how many time steps the probability for the respective property to be satisfied is above a certain threshold.
+
+For more information about PRISM experiments, including how to run them from the command line, consult the [PRISM manual.]([https://www.prismmodelchecker.org/download.php](https://www.prismmodelchecker.org/manual/RunningPRISM/Experiments))
+
+
+
 ## Acknowledgments
 The authors are supported by the ANR ADAPT (grant number ANR-23-CE25-0004) and the EIPHI Graduate School (grant number ANR-17-EURE-0002).
