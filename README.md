@@ -100,7 +100,15 @@ This will enable you to determine after how many time steps the probability for 
 
 For more information about PRISM experiments, including how to run them from the command line, consult the [PRISM manual.]([https://www.prismmodelchecker.org/download.php](https://www.prismmodelchecker.org/manual/RunningPRISM/Experiments))
 
+## Extend and modify the artifact
 
+The artifact can be modified and extended in different ways, some ideas are collected below.
+
+- Explore new scenarios.
+- Analyse different properties.
+- Change the probabilites of the transitions.
+- Include new modules. This would probably also entail modifying or extending the synchronisation between the different modules and extending the task_controller and environment modules.
+- 
 
 ## Acknowledgments
 The authors are supported by the ANR ADAPT (grant number ANR-23-CE25-0004) and the EIPHI Graduate School (grant number ANR-17-EURE-0002).
