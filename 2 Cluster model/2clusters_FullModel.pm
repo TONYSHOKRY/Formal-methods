@@ -111,22 +111,23 @@ module Task_Controller
   task_counter : [0..2] init 0;
   active1 : bool init true;
   active2 : bool init true;
-  turn: [0..1] init 0;// depends on number of clusters in here 2 modules
+ stagcounter : bool init false;
+ turn: [0..1] init 0;// depends on number of clusters in here 2 modules
 
   [activate_1] (s1=idle) & !active1 & task_counter=1 -> (active1'=true);
   [activate_2] (s1=idle&s2=idle) & !active2 & task_counter=1 -> (active2'=true);
   
-
   [deactivate_1] (s1=idle) & active1 -> (active1'=false);
   [deactivate_2] (s1=idle&s2=idle) & active2 -> (active2'=false);
-
-   [Task_increment] task_counter<2 & 
-        ( (!active1 | (active1  & (s1=finish | s1=task_failed))) &
+  [deactivate_dummy] (s1=start_task&s2=start_task & sd=0) & activedummy -> (activedummy'=false) &(N1'=10) &(N2'=10) &(N_dummy'=0);
+   [Task_increment] task_counter<2 & staggered=false&
+        ( (!active1 | (active1  & (s1=finish | s1=task_failed))) |
          (!active2 | (active2  & (s2=finish | s2=task_failed))))  ->
-         (task_counter'=task_counter+1);
+         (task_counter'=task_counter+1) ;
 
-[turn1] turn =0 & (s1=finish|s1=task_failed) & staggered=true-> (turn'=1);
-//[turn2] turn =1 & (s2=finish|s2=task_failed) & staggered=true-> (turn'=0);
+[turn1] turn=0 & (s1=finish|s1=task_failed) & staggered=true-> (turn'=1);
+[turn2] turn=1 & (s2=finish|s2=task_failed) & staggered=true &stagcounter=false-> (turn'=0)&(stagcounter'=true);
+[Task_increment_stag] task_counter<2& (s2=start_task) & staggered=true& stagcounter=true -> (task_counter'=task_counter+1)&(stagcounter'=false);
 endmodule
 
 // BB1: Cluster 1 of Blinky Blocks
@@ -139,40 +140,40 @@ module c1
   [step] (s1=start_task)& !active1 -> true ;
 
   // Start task (guarded by active1)
-  [step] s1=start_task & active1 -> (s1'=choose_Red) & (color1'=1) ;
-  [step] s1=start_task & active1 -> (s1'=choose_Blue) & (color1'=2) ;
-  [step] s1=start_task & active1 -> (s1'=choose_white) & (color1'=3) ;
-  [step] s1=start_task & active1 -> (s1'=high_pitch) ;
-  [step] s1=start_task & active1 -> (s1'=med_pitch) ;
-  [step] s1=start_task & active1 -> (s1'=low_pitch) ;
-  [sense_both1] s1=start_task & active1 -> (s1'=listen_on_moving_on) ;
-  [sense_mic1] s1=start_task & active1 -> (s1'=listen_on_moving_off) ;
-  [sense_acc1] s1=start_task & active1 -> (s1'=listen_off_moving_on) ;
+  [step] s1=start_task & active1 & staggered=false -> (s1'=choose_Red) & (color1'=1) ;
+  [step] s1=start_task & active1& staggered=false -> (s1'=choose_Blue) & (color1'=2) ;
+  [step] s1=start_task & active1 & staggered=false-> (s1'=choose_white) & (color1'=3) ;
+  [step] s1=start_task & active1 & staggered=false-> (s1'=high_pitch) ;
+  [step] s1=start_task & active1 & staggered=false-> (s1'=med_pitch) ;
+  [step] s1=start_task & active1& staggered=false -> (s1'=low_pitch) ;
+  [sense_both1] s1=start_task & active1& staggered=false -> (s1'=listen_on_moving_on) ;
+  [sense_mic1] s1=start_task & active1 & staggered=false-> (s1'=listen_on_moving_off) ;
+  [sense_acc1] s1=start_task & active1 & staggered=false-> (s1'=listen_off_moving_on) ;
 
   // Color selection
-  [step] s1=choose_Red -> (s1'=high_blink_high_buzz)  ;
-  [step] s1=choose_Red -> (s1'=high_blink_med_buzz) ;
-  [step] s1=choose_Red -> (s1'=med_blink_high_buzz) ;
-  [step] s1=choose_Red -> (s1'=med_blink_med_buzz) ;
-  [step] s1=choose_Red -> (s1'=high_Led) ;
-  [step] s1=choose_Red -> (s1'=med_Led) ;
-  [step] s1=choose_Red -> (s1'=low_Led) ;
+  [step] s1=choose_Red & staggered=false-> (s1'=high_blink_high_buzz)  ;
+  [step] s1=choose_Red & staggered=false-> (s1'=high_blink_med_buzz) ;
+  [step] s1=choose_Red & staggered=false-> (s1'=med_blink_high_buzz) ;
+  [step] s1=choose_Red & staggered=false-> (s1'=med_blink_med_buzz) ;
+  [step] s1=choose_Red & staggered=false-> (s1'=high_Led) ;
+  [step] s1=choose_Red & staggered=false-> (s1'=med_Led) ;
+  [step] s1=choose_Red & staggered=false-> (s1'=low_Led) ;
 
-  [step] s1=choose_Blue -> (s1'=high_blink_high_buzz) ;
-  [step] s1=choose_Blue -> (s1'=high_blink_med_buzz) ;
-  [step] s1=choose_Blue -> (s1'=med_blink_high_buzz) ;
-  [step] s1=choose_Blue -> (s1'=med_blink_med_buzz) ;
-  [step] s1=choose_Blue -> (s1'=high_Led) ;
-  [step] s1=choose_Blue -> (s1'=med_Led) ;
-  [step] s1=choose_Blue -> (s1'=low_Led) ;
+  [step] s1=choose_Blue& staggered=false -> (s1'=high_blink_high_buzz) ;
+  [step] s1=choose_Blue & staggered=false-> (s1'=high_blink_med_buzz) ;
+  [step] s1=choose_Blue & staggered=false-> (s1'=med_blink_high_buzz) ;
+  [step] s1=choose_Blue & staggered=false-> (s1'=med_blink_med_buzz) ;
+  [step] s1=choose_Blue & staggered=false-> (s1'=high_Led) ;
+  [step] s1=choose_Blue & staggered=false-> (s1'=med_Led) ;
+  [step] s1=choose_Blue & staggered=false-> (s1'=low_Led) ;
 
-  [step] s1=choose_white -> (s1'=high_blink_high_buzz) ;
-  [step] s1=choose_white -> (s1'=high_blink_med_buzz) ;
-  [step] s1=choose_white -> (s1'=med_blink_high_buzz) ;
-  [step] s1=choose_white -> (s1'=med_blink_med_buzz) ;
-  [step] s1=choose_white -> (s1'=high_Led) ;
-  [step] s1=choose_white -> (s1'=med_Led) ;
-  [step] s1=choose_white -> (s1'=low_Led) ;
+  [step] s1=choose_white & staggered=false-> (s1'=high_blink_high_buzz) ;
+  [step] s1=choose_white & staggered=false-> (s1'=high_blink_med_buzz) ;
+  [step] s1=choose_white & staggered=false-> (s1'=med_blink_high_buzz) ;
+  [step] s1=choose_white & staggered=false-> (s1'=med_blink_med_buzz) ;
+  [step] s1=choose_white & staggered=false-> (s1'=high_Led) ;
+  [step] s1=choose_white& staggered=false -> (s1'=med_Led) ;
+  [step] s1=choose_white & staggered=false-> (s1'=low_Led) ;
 ////////////////////////////////////
   // Probabilistic transitions (BB1-specific) LINE pattern syncroninzed with other clusters
 ///////////////////////////////////
@@ -486,310 +487,350 @@ module c1
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  // Probabilistic transitions (BB1-specific) LINE pattern staggered with other clusters
 ///////////////////////////////////
+// Start task (guarded by active1)
+  [stag1] s1=start_task & active1 & staggered=true &turn=0&stagcounter=false  -> (s1'=choose_Red) & (color1'=1) ;
+  [stag1] s1=start_task & active1& staggered=true &turn=0&stagcounter=false -> (s1'=choose_Blue) & (color1'=2) ;
+  [stag1] s1=start_task & active1 & staggered=true&turn=0&stagcounter=false-> (s1'=choose_white) & (color1'=3) ;
+  [stag1] s1=start_task & active1 & staggered=true&turn=0&stagcounter=false-> (s1'=high_pitch) ;
+  [stag1] s1=start_task & active1 & staggered=true&turn=0&stagcounter=false-> (s1'=med_pitch) ;
+  [stag1] s1=start_task & active1& staggered=true &turn=0&stagcounter=false-> (s1'=low_pitch) ;
+  [sense_both1] s1=start_task & active1& staggered=true &turn=0&stagcounter=false-> (s1'=listen_on_moving_on) ;
+  [sense_mic1] s1=start_task & active1 & staggered=true&turn=0&stagcounter=false-> (s1'=listen_on_moving_off) ;
+  [sense_acc1] s1=start_task & active1 & staggered=true&turn=0&stagcounter=false-> (s1'=listen_off_moving_on) ;
+
+  // Color selection
+  [stag1] s1=choose_Red & staggered=true&turn=0-> (s1'=high_blink_high_buzz)  ;
+  [stag1] s1=choose_Red & staggered=true&turn=0-> (s1'=high_blink_med_buzz) ;
+  [stag1] s1=choose_Red & staggered=true&turn=0-> (s1'=med_blink_high_buzz) ;
+  [stag1] s1=choose_Red & staggered=true&turn=0-> (s1'=med_blink_med_buzz) ;
+  [stag1] s1=choose_Red & staggered=true&turn=0-> (s1'=high_Led) ;
+  [stag1] s1=choose_Red & staggered=true&turn=0-> (s1'=med_Led) ;
+  [stag1] s1=choose_Red & staggered=true&turn=0-> (s1'=low_Led) ;
+
+  [stag1] s1=choose_Blue& staggered=true &turn=0-> (s1'=high_blink_high_buzz) ;
+  [stag1] s1=choose_Blue & staggered=true&turn=0-> (s1'=high_blink_med_buzz) ;
+  [stag1] s1=choose_Blue & staggered=true&turn=0-> (s1'=med_blink_high_buzz) ;
+  [stag1] s1=choose_Blue & staggered=true&turn=0-> (s1'=med_blink_med_buzz) ;
+  [stag1] s1=choose_Blue & staggered=true&turn=0-> (s1'=high_Led) ;
+  [stag1] s1=choose_Blue & staggered=true&turn=0-> (s1'=med_Led) ;
+  [stag1] s1=choose_Blue & staggered=true&turn=0-> (s1'=low_Led) ;
+
+  [stag1] s1=choose_white & staggered=true&turn=0-> (s1'=high_blink_high_buzz) ;
+  [stag1] s1=choose_white & staggered=true&turn=0-> (s1'=high_blink_med_buzz) ;
+  [stag1] s1=choose_white & staggered=true&turn=0-> (s1'=med_blink_high_buzz) ;
+  [stag1] s1=choose_white & staggered=true&turn=0-> (s1'=med_blink_med_buzz) ;
+  [stag1] s1=choose_white & staggered=true&turn=0-> (s1'=high_Led) ;
+  [stag1] s1=choose_white& staggered=true &turn=0-> (s1'=med_Led) ;
+  [stag1] s1=choose_white & staggered=true&turn=0-> (s1'=low_Led) ;
+////////////////////////////////////
 //high pitch
-  [stag1] s1=high_pitch & hw_state=2 & Rec_motif1=false & staggered=true -> (s1'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_pitch & hw_state=1 & Rec_motif1=false & staggered=true -> (s1'=med_pitch);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_pitch & hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true ->(1-q_high_pitch_c1)/2 : (s1'=med_pitch) + 1-((1-q_high_pitch_c1)/2) : (s1'=low_pitch);// Priority 3: environment sensing
-  [stag1] s1=high_pitch & hw_state=0 & env_state1= 0 & move=1& Rec_motif1=false & staggered=true->(1-q_high_pitch_c1) : (s1'=task_failed)+ q_high_pitch_c1/2 : (s1'=med_pitch) + q_high_pitch_c1/2 : (s1'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_pitch & hw_state=0 & env_state1=1  & sound=1 & Rec_motif1=false & staggered=true->1-((1-q_high_pitch_c1)/2) : (s1'=med_pitch) + (1-q_high_pitch_c1)/2 : (s1'=low_pitch);
-  [stag1] s1=high_pitch& hw_state=0   & (sound=0 & move=0) & Rec_motif1=false & staggered=true-> q_high_pitch_c1  : (s1'=finish) + (1-q_high_pitch_c1)/2 : (s1'=med_pitch) + (1-q_high_pitch_c1)/2 : (s1'=low_pitch); // default
+  [stag1] s1=high_pitch & hw_state=2 & Rec_motif1=false & staggered=true &turn=0-> (s1'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_pitch & hw_state=1 & Rec_motif1=false & staggered=true &turn=0-> (s1'=med_pitch);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_pitch & hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true&turn=0 ->(1-q_high_pitch_c1)/2 : (s1'=med_pitch) + 1-((1-q_high_pitch_c1)/2) : (s1'=low_pitch);// Priority 3: environment sensing
+  [stag1] s1=high_pitch & hw_state=0 & env_state1= 0 & move=1& Rec_motif1=false & staggered=true&turn=0->(1-q_high_pitch_c1) : (s1'=task_failed)+ q_high_pitch_c1/2 : (s1'=med_pitch) + q_high_pitch_c1/2 : (s1'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_pitch & hw_state=0 & env_state1=1  & sound=1 & Rec_motif1=false & staggered=true&turn=0->1-((1-q_high_pitch_c1)/2) : (s1'=med_pitch) + (1-q_high_pitch_c1)/2 : (s1'=low_pitch);
+  [stag1] s1=high_pitch& hw_state=0   & (sound=0 & move=0) & Rec_motif1=false & staggered=true&turn=0-> q_high_pitch_c1  : (s1'=finish) + (1-q_high_pitch_c1)/2 : (s1'=med_pitch) + (1-q_high_pitch_c1)/2 : (s1'=low_pitch); // default
 
 //med pitch
-  [stag1] s1=med_pitch & (hw_state=2 |hw_state=1) & Rec_motif1=false & staggered=true -> (s1'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag1] s1=med_pitch & hw_state=0 & (env_state1=2 |env_state1=1)  &( sound=1 |move=1)& Rec_motif1=false & staggered=true -> (s1'=low_pitch);// Priority 3: environment sensing
-  [stag1] s1=med_pitch & hw_state=0 & env_state1= 0 & move=1& Rec_motif1=false & staggered=true-> 1-(q_high_pitch_c1*beta1) : (s1'=task_failed)+ q_high_pitch_c1*beta1 : (s1'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=med_pitch& hw_state=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true-> q_high_pitch_c1*beta1 : (s1'=finish) + (1-(q_high_pitch_c1*beta1)) : (s1'=low_pitch);// default
+  [stag1] s1=med_pitch & (hw_state=2 |hw_state=1) & Rec_motif1=false & staggered=true&turn=0 -> (s1'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag1] s1=med_pitch & hw_state=0 & (env_state1=2 |env_state1=1)  &( sound=1 |move=1)& Rec_motif1=false & staggered=true &turn=0-> (s1'=low_pitch);// Priority 3: environment sensing
+  [stag1] s1=med_pitch & hw_state=0 & env_state1= 0 & move=1& Rec_motif1=false & staggered=true&turn=0-> 1-(q_high_pitch_c1*beta1) : (s1'=task_failed)+ q_high_pitch_c1*beta1 : (s1'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=med_pitch& hw_state=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true&turn=0-> q_high_pitch_c1*beta1 : (s1'=finish) + (1-(q_high_pitch_c1*beta1)) : (s1'=low_pitch);// default
 
 //low pitch
-  [stag1] s1=low_pitch & (hw_state=2 |env_state1=2)& Rec_motif1=false & staggered=true -> (1-(q_high_pitch_c1*beta2)) : (s1'=finish) + q_high_pitch_c1*beta2 : (s1'=task_failed); 
-  [stag1] s1=low_pitch & (hw_state=1 |env_state1=1)& Rec_motif1=false & staggered=true -> (1-((q_high_pitch_c1*beta2)/2)) : (s1'=finish) + (q_high_pitch_c1*beta2)/2 : (s1'=task_failed); 
-  [stag1] s1=low_pitch & hw_state=0 & Rec_motif1=false & staggered=true-> q_high_pitch_c1*beta2 : (s1'=finish) + (1-(q_high_pitch_c1*beta2)) : (s1'=task_failed);//even if movement it is already very low consuming and it is the lowest state so failure exist but not as when a higher consuming state
+  [stag1] s1=low_pitch & (hw_state=2 |env_state1=2)& Rec_motif1=false & staggered=true &turn=0-> (1-(q_high_pitch_c1*beta2)) : (s1'=finish) + q_high_pitch_c1*beta2 : (s1'=task_failed); 
+  [stag1] s1=low_pitch & (hw_state=1 |env_state1=1)& Rec_motif1=false & staggered=true &turn=0-> (1-((q_high_pitch_c1*beta2)/2)) : (s1'=finish) + (q_high_pitch_c1*beta2)/2 : (s1'=task_failed); 
+  [stag1] s1=low_pitch & hw_state=0 & Rec_motif1=false & staggered=true&turn=0-> q_high_pitch_c1*beta2 : (s1'=finish) + (1-(q_high_pitch_c1*beta2)) : (s1'=task_failed);//even if movement it is already very low consuming and it is the lowest state so failure exist but not as when a higher consuming state
 
 //sensor-environment transition
-  [stag1] s1=listen_on_moving_on & Rec_motif1=false & staggered=true-> 0.95 : (s1'=finish) + 0.05 : (s1'=task_failed);
-  [stag1] s1=listen_on_moving_off & Rec_motif1=false & staggered=true-> 0.95 : (s1'=finish) + 0.05 : (s1'=task_failed);
-  [stag1] s1=listen_off_moving_on& Rec_motif1=false & staggered=true -> 0.95 : (s1'=finish) + 0.05 : (s1'=task_failed);
+  [stag1] s1=listen_on_moving_on & Rec_motif1=false & staggered=true&turn=0-> 0.95 : (s1'=finish) + 0.05 : (s1'=task_failed);
+  [stag1] s1=listen_on_moving_off & Rec_motif1=false & staggered=true&turn=0-> 0.95 : (s1'=finish) + 0.05 : (s1'=task_failed);
+  [stag1] s1=listen_off_moving_on& Rec_motif1=false & staggered=true &turn=0-> 0.95 : (s1'=finish) + 0.05 : (s1'=task_failed);
 
 //high-high simultaneous actuating white
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=2 & Rec_motif1=false & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=1 & Rec_motif1=false & staggered=true -> 0.5 : (s1'=high_blink_med_buzz) +0.5: (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true->0.5 : (s1'=med_blink_high_buzz) + 0.5 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=false & staggered=true->1-((q_w_high_c1*gamma)*q_high_pitch_c1) : (s1'=task_failed)+((q_w_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + ((q_w_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true->(q_w_high_c1*gamma)*q_high_pitch_c1 : (s1'=high_blink_med_buzz) + 1-((q_w_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true -> (q_w_high_c1*gamma)*q_high_pitch_c1: (s1'=finish) + (1-((q_w_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=high_blink_med_buzz) + (1-((q_w_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=med_blink_high_buzz) + (1-((q_w_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=med_blink_med_buzz); //default(Empirical)
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=2 & Rec_motif1=false & staggered=true &turn=0-> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=1 & Rec_motif1=false & staggered=true &turn=0-> 0.5 : (s1'=high_blink_med_buzz) +0.5: (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true&turn=0->0.5 : (s1'=med_blink_high_buzz) + 0.5 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=false & staggered=true&turn=0->1-((q_w_high_c1*gamma)*q_high_pitch_c1) : (s1'=task_failed)+((q_w_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + ((q_w_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true&turn=0->(q_w_high_c1*gamma)*q_high_pitch_c1 : (s1'=high_blink_med_buzz) + 1-((q_w_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true &turn=0-> (q_w_high_c1*gamma)*q_high_pitch_c1: (s1'=finish) + (1-((q_w_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=high_blink_med_buzz) + (1-((q_w_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=med_blink_high_buzz) + (1-((q_w_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=med_blink_med_buzz); //default(Empirical)
 //high-high simultaneous actuating blue
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=2 & Rec_motif1=false & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=1 & Rec_motif1=false & staggered=true -> 0.5 : (s1'=high_blink_med_buzz) +0.5: (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true->0.5 : (s1'=med_blink_high_buzz) + 0.5 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=false & staggered=true->1-((q_b_high_c1*gamma)*q_high_pitch_c1) : (s1'=task_failed)+((q_b_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + ((q_b_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true->(q_b_high_c1*gamma)*q_high_pitch_c1 : (s1'=high_blink_med_buzz) + 1-((q_b_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & (sound=0 & move=0) & Rec_motif1=false & staggered=true-> (q_b_high_c1*gamma)*q_high_pitch_c1: (s1'=finish) + (1-((q_b_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=high_blink_med_buzz) + (1-((q_b_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=med_blink_high_buzz) + (1-((q_b_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=med_blink_med_buzz); //default(Empirical)
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=2 & Rec_motif1=false & staggered=true &turn=0-> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=1 & Rec_motif1=false & staggered=true&turn=0 -> 0.5 : (s1'=high_blink_med_buzz) +0.5: (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true &turn=0->0.5 : (s1'=med_blink_high_buzz) + 0.5 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=false & staggered=true&turn=0->1-((q_b_high_c1*gamma)*q_high_pitch_c1) : (s1'=task_failed)+((q_b_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + ((q_b_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true&turn=0->(q_b_high_c1*gamma)*q_high_pitch_c1 : (s1'=high_blink_med_buzz) + 1-((q_b_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & (sound=0 & move=0) & Rec_motif1=false & staggered=true&turn=0-> (q_b_high_c1*gamma)*q_high_pitch_c1: (s1'=finish) + (1-((q_b_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=high_blink_med_buzz) + (1-((q_b_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=med_blink_high_buzz) + (1-((q_b_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=med_blink_med_buzz); //default(Empirical)
 //high-high simultaneous actuating RED
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=2 & Rec_motif1=false & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=1 & Rec_motif1=false & staggered=true -> 0.5 : (s1'=high_blink_med_buzz) +0.5: (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true->0.5 : (s1'=med_blink_high_buzz) + 0.5 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=false & staggered=true->1-((q_r_high_c1*gamma)*q_high_pitch_c1) : (s1'=task_failed)+((q_r_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + ((q_r_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true->(q_r_high_c1*gamma)*q_high_pitch_c1 : (s1'=high_blink_med_buzz) + 1-((q_r_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true -> (q_r_high_c1*gamma)*q_high_pitch_c1: (s1'=finish) + (1-((q_r_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=high_blink_med_buzz) + (1-((q_r_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=med_blink_high_buzz) + (1-((q_r_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=med_blink_med_buzz); //default(Empirical)
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=2 & Rec_motif1=false & staggered=true &turn=0-> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=1 & Rec_motif1=false & staggered=true &turn=0-> 0.5 : (s1'=high_blink_med_buzz) +0.5: (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true&turn=0->0.5 : (s1'=med_blink_high_buzz) + 0.5 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=false & staggered=true&turn=0->1-((q_r_high_c1*gamma)*q_high_pitch_c1) : (s1'=task_failed)+((q_r_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + ((q_r_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true&turn=0->(q_r_high_c1*gamma)*q_high_pitch_c1 : (s1'=high_blink_med_buzz) + 1-((q_r_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true &turn=0-> (q_r_high_c1*gamma)*q_high_pitch_c1: (s1'=finish) + (1-((q_r_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=high_blink_med_buzz) + (1-((q_r_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=med_blink_high_buzz) + (1-((q_r_high_c1*gamma)*q_high_pitch_c1))/3 : (s1'=med_blink_med_buzz); //default(Empirical)
 
 //high-med simultaneous actuating white
-  [stag1] s1=high_blink_med_buzz &color1=3 & hw_state=2& Rec_motif1=false & staggered=true  -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_blink_med_buzz &color1=3 & hw_state=1 & Rec_motif1=false & staggered=true -> 0.5 : (s1'=med_blink_med_buzz) + 0.5 : (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
-  [stag1] s1=high_blink_med_buzz &color1=3& hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true->1-((q_w_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz) + (q_w_high_c1*gamma)*q_high_pitch_c1 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=false & staggered=true->1-((q_w_high_c1*gamma)*q_high_pitch_c1) : (s1'=task_failed)+((q_w_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + ((q_w_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_blink_med_buzz &color1=3& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true->(q_w_high_c1*gamma)*q_high_pitch_c1  : (s1'=med_blink_med_buzz) + 1-((q_w_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
-  [stag1] s1=high_blink_med_buzz &color1=3& hw_state=0 & env_state1=0  & (sound=0 & move=0) & Rec_motif1=false & staggered=true-> (q_w_high_c1*gamma)*q_high_pitch_c1 : (s1'=finish)  + (1-((q_w_high_c1*gamma)*q_high_pitch_c1))/2 : (s1'=med_blink_high_buzz) + (1-((q_w_high_c1*gamma)*q_high_pitch_c1))/2 : (s1'=med_blink_med_buzz); //default(empirical)
+  [stag1] s1=high_blink_med_buzz &color1=3 & hw_state=2& Rec_motif1=false & staggered=true &turn=0 -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_blink_med_buzz &color1=3 & hw_state=1 & Rec_motif1=false & staggered=true &turn=0-> 0.5 : (s1'=med_blink_med_buzz) + 0.5 : (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
+  [stag1] s1=high_blink_med_buzz &color1=3& hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true&turn=0->1-((q_w_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz) + (q_w_high_c1*gamma)*q_high_pitch_c1 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=false & staggered=true&turn=0->1-((q_w_high_c1*gamma)*q_high_pitch_c1) : (s1'=task_failed)+((q_w_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + ((q_w_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_blink_med_buzz &color1=3& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true&turn=0->(q_w_high_c1*gamma)*q_high_pitch_c1  : (s1'=med_blink_med_buzz) + 1-((q_w_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
+  [stag1] s1=high_blink_med_buzz &color1=3& hw_state=0 & env_state1=0  & (sound=0 & move=0) & Rec_motif1=false & staggered=true&turn=0-> (q_w_high_c1*gamma)*q_high_pitch_c1 : (s1'=finish)  + (1-((q_w_high_c1*gamma)*q_high_pitch_c1))/2 : (s1'=med_blink_high_buzz) + (1-((q_w_high_c1*gamma)*q_high_pitch_c1))/2 : (s1'=med_blink_med_buzz); //default(empirical)
  //high-med simultaneous actuating blue
-   [stag1] s1=high_blink_med_buzz &color1=2 & hw_state=2 & Rec_motif1=false & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_blink_med_buzz &color1=2 & hw_state=1 & Rec_motif1=false & staggered=true -> 0.5 : (s1'=med_blink_med_buzz) + 0.5 : (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
-  [stag1] s1=high_blink_med_buzz &color1=2& hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true->1-((q_b_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz) + (q_b_high_c1*gamma)*q_high_pitch_c1 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=false & staggered=true->1-((q_b_high_c1*gamma)*q_high_pitch_c1) : (s1'=task_failed)+((q_b_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + ((q_b_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_blink_med_buzz &color1=2& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true->(q_b_high_c1*gamma)*q_high_pitch_c1  : (s1'=med_blink_med_buzz) + 1-((q_b_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
-  [stag1] s1=high_blink_med_buzz &color1=2& hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true -> (q_b_high_c1*gamma)*q_high_pitch_c1 : (s1'=finish)  + (1-((q_b_high_c1*gamma)*q_high_pitch_c1))/2 : (s1'=med_blink_high_buzz) + (1-((q_b_high_c1*gamma)*q_high_pitch_c1))/2 : (s1'=med_blink_med_buzz); //default(empirical)
+   [stag1] s1=high_blink_med_buzz &color1=2 & hw_state=2 & Rec_motif1=false & staggered=true&turn=0 -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_blink_med_buzz &color1=2 & hw_state=1 & Rec_motif1=false & staggered=true &turn=0-> 0.5 : (s1'=med_blink_med_buzz) + 0.5 : (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
+  [stag1] s1=high_blink_med_buzz &color1=2& hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true&turn=0->1-((q_b_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz) + (q_b_high_c1*gamma)*q_high_pitch_c1 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=false & staggered=true&turn=0->1-((q_b_high_c1*gamma)*q_high_pitch_c1) : (s1'=task_failed)+((q_b_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + ((q_b_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_blink_med_buzz &color1=2& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true&turn=0->(q_b_high_c1*gamma)*q_high_pitch_c1  : (s1'=med_blink_med_buzz) + 1-((q_b_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
+  [stag1] s1=high_blink_med_buzz &color1=2& hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true &turn=0-> (q_b_high_c1*gamma)*q_high_pitch_c1 : (s1'=finish)  + (1-((q_b_high_c1*gamma)*q_high_pitch_c1))/2 : (s1'=med_blink_high_buzz) + (1-((q_b_high_c1*gamma)*q_high_pitch_c1))/2 : (s1'=med_blink_med_buzz); //default(empirical)
  
 //high-med simultaneous actuating Red
-  [stag1] s1=high_blink_med_buzz &color1=1 & hw_state=2 & Rec_motif1=false & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_blink_med_buzz &color1=1 & hw_state=1 & Rec_motif1=false & staggered=true -> 0.5 : (s1'=med_blink_med_buzz) + 0.5 : (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
-  [stag1] s1=high_blink_med_buzz &color1=1& hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true->1-((q_r_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz) + (q_r_high_c1*gamma)*q_high_pitch_c1 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=false & staggered=true->1-((q_r_high_c1*gamma)*q_high_pitch_c1) : (s1'=task_failed)+((q_r_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + ((q_r_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_blink_med_buzz &color1=1& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true->(q_r_high_c1*gamma)*q_high_pitch_c1  : (s1'=med_blink_med_buzz) + 1-((q_r_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
-  [stag1] s1=high_blink_med_buzz &color1=1& hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true -> (q_r_high_c1*gamma)*q_high_pitch_c1 : (s1'=finish)  + (1-((q_r_high_c1*gamma)*q_high_pitch_c1))/2 : (s1'=med_blink_high_buzz) + (1-((q_r_high_c1*gamma)*q_high_pitch_c1))/2 : (s1'=med_blink_med_buzz); //default(empirical)
+  [stag1] s1=high_blink_med_buzz &color1=1 & hw_state=2 & Rec_motif1=false & staggered=true &turn=0-> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_blink_med_buzz &color1=1 & hw_state=1 & Rec_motif1=false & staggered=true &turn=0-> 0.5 : (s1'=med_blink_med_buzz) + 0.5 : (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
+  [stag1] s1=high_blink_med_buzz &color1=1& hw_state=0 & env_state1=2  & move=1& Rec_motif1=false & staggered=true&turn=0->1-((q_r_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz) + (q_r_high_c1*gamma)*q_high_pitch_c1 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=false & staggered=true&turn=0->1-((q_r_high_c1*gamma)*q_high_pitch_c1) : (s1'=task_failed)+((q_r_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + ((q_r_high_c1*gamma)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_blink_med_buzz &color1=1& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true&turn=0->(q_r_high_c1*gamma)*q_high_pitch_c1  : (s1'=med_blink_med_buzz) + 1-((q_r_high_c1*gamma)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
+  [stag1] s1=high_blink_med_buzz &color1=1& hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true &turn=0-> (q_r_high_c1*gamma)*q_high_pitch_c1 : (s1'=finish)  + (1-((q_r_high_c1*gamma)*q_high_pitch_c1))/2 : (s1'=med_blink_high_buzz) + (1-((q_r_high_c1*gamma)*q_high_pitch_c1))/2 : (s1'=med_blink_med_buzz); //default(empirical)
  
 
  //med-high simultaneous actuating white
-  [stag1] s1=med_blink_high_buzz &color1=3 & (hw_state=2 | hw_state=1) & Rec_motif1=false & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=med_blink_high_buzz &color1=3 & hw_state=0 & (env_state1=2 | env_state1=1)   & (sound=1 | move=1)& Rec_motif1=false & staggered=true-> (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=med_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true-> (q_w_high_c1*gamma)*q_high_pitch_c1*beta1 : (s1'=finish)  + 1-((q_w_high_c1*gamma)*q_high_pitch_c1*beta1) : (s1'=med_blink_med_buzz); //default(empirical)
-  [stag1] s1=med_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & ( move=1)& Rec_motif1=false & staggered=true-> 1-((q_w_high_c1*gamma)*q_high_pitch_c1*beta1) : (s1'=task_failed)  + (q_w_high_c1*gamma)*q_high_pitch_c1*beta1 : (s1'=med_blink_med_buzz); //when movement un-intentionally
+  [stag1] s1=med_blink_high_buzz &color1=3 & (hw_state=2 | hw_state=1) & Rec_motif1=false & staggered=true &turn=0-> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=med_blink_high_buzz &color1=3 & hw_state=0 & (env_state1=2 | env_state1=1)   & (sound=1 | move=1)& Rec_motif1=false & staggered=true&turn=0-> (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=med_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true&turn=0-> (q_w_high_c1*gamma)*q_high_pitch_c1*beta1 : (s1'=finish)  + 1-((q_w_high_c1*gamma)*q_high_pitch_c1*beta1) : (s1'=med_blink_med_buzz); //default(empirical)
+  [stag1] s1=med_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & ( move=1)& Rec_motif1=false & staggered=true&turn=0-> 1-((q_w_high_c1*gamma)*q_high_pitch_c1*beta1) : (s1'=task_failed)  + (q_w_high_c1*gamma)*q_high_pitch_c1*beta1 : (s1'=med_blink_med_buzz); //when movement un-intentionally
  //med-high simultaneous actuating blue
-  [stag1] s1=med_blink_high_buzz &color1=2 & (hw_state=2 | hw_state=1)& Rec_motif1=false & staggered=true  -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=med_blink_high_buzz &color1=2 & hw_state=0 & (env_state1=2 | env_state1=1)   & (sound=1 | move=1)& Rec_motif1=false & staggered=true-> (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=med_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true-> (q_b_high_c1*gamma)*q_high_pitch_c1*beta1 : (s1'=finish)  + 1-((q_b_high_c1*gamma)*q_high_pitch_c1*beta1) : (s1'=med_blink_med_buzz); //default(empirical)
-  [stag1] s1=med_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & ( move=1)& Rec_motif1=false & staggered=true-> 1-((q_b_high_c1*gamma)*q_high_pitch_c1*beta1) : (s1'=task_failed)  + (q_b_high_c1*gamma)*q_high_pitch_c1*beta1 : (s1'=med_blink_med_buzz); //when movement un-intentionally
+  [stag1] s1=med_blink_high_buzz &color1=2 & (hw_state=2 | hw_state=1)& Rec_motif1=false & staggered=true &turn=0-> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=med_blink_high_buzz &color1=2 & hw_state=0 & (env_state1=2 | env_state1=1)   & (sound=1 | move=1)& Rec_motif1=false & staggered=true&turn=0-> (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=med_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true&turn=0-> (q_b_high_c1*gamma)*q_high_pitch_c1*beta1 : (s1'=finish)  + 1-((q_b_high_c1*gamma)*q_high_pitch_c1*beta1) : (s1'=med_blink_med_buzz); //default(empirical)
+  [stag1] s1=med_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & ( move=1)& Rec_motif1=false & staggered=true&turn=0-> 1-((q_b_high_c1*gamma)*q_high_pitch_c1*beta1) : (s1'=task_failed)  + (q_b_high_c1*gamma)*q_high_pitch_c1*beta1 : (s1'=med_blink_med_buzz); //when movement un-intentionally
  //med-high simultaneous actuating Red
-  [stag1] s1=med_blink_high_buzz &color1=1 & (hw_state=2 | hw_state=1) & Rec_motif1=false & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=med_blink_high_buzz &color1=1 & hw_state=0 & (env_state1=2 | env_state1=1)   & (sound=1 | move=1)& Rec_motif1=false & staggered=true-> (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=med_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true-> (q_r_high_c1*gamma)*q_high_pitch_c1*beta1 : (s1'=finish)  + 1-((q_r_high_c1*gamma)*q_high_pitch_c1*beta1) : (s1'=med_blink_med_buzz); //default(empirical)
-  [stag1] s1=med_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & ( move=1) & Rec_motif1=false & staggered=true-> 1-((q_r_high_c1*gamma)*q_high_pitch_c1*beta1) : (s1'=task_failed)  + (q_r_high_c1*gamma)*q_high_pitch_c1*beta1 : (s1'=med_blink_med_buzz); //when movement un-intentionally
+  [stag1] s1=med_blink_high_buzz &color1=1 & (hw_state=2 | hw_state=1) & Rec_motif1=false & staggered=true &turn=0-> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=med_blink_high_buzz &color1=1 & hw_state=0 & (env_state1=2 | env_state1=1)   & (sound=1 | move=1)& Rec_motif1=false & staggered=true&turn=0-> (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=med_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=false & staggered=true&turn=0-> (q_r_high_c1*gamma)*q_high_pitch_c1*beta1 : (s1'=finish)  + 1-((q_r_high_c1*gamma)*q_high_pitch_c1*beta1) : (s1'=med_blink_med_buzz); //default(empirical)
+  [stag1] s1=med_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & ( move=1) & Rec_motif1=false & staggered=true&turn=0-> 1-((q_r_high_c1*gamma)*q_high_pitch_c1*beta1) : (s1'=task_failed)  + (q_r_high_c1*gamma)*q_high_pitch_c1*beta1 : (s1'=med_blink_med_buzz); //when movement un-intentionally
 
 
 
 //med-med simultaneous actuating white
-  [stag1] s1=med_blink_med_buzz &color1=3& (hw_state=2 |env_state1=2)& Rec_motif1=false & staggered=true -> 1-((q_w_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=finish) + ((q_w_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=task_failed); 
-  [stag1] s1=med_blink_med_buzz &color1=3& (hw_state=1 |env_state1=1) & Rec_motif1=false & staggered=true-> 0.5 : (s1'=finish) + 0.5 : (s1'=task_failed); 
-  [stag1] s1=med_blink_med_buzz &color1=3& hw_state=0& Rec_motif1=false & staggered=true-> ((q_w_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=finish) + 1-((q_w_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=task_failed);//empirical data
+  [stag1] s1=med_blink_med_buzz &color1=3& (hw_state=2 |env_state1=2)& Rec_motif1=false & staggered=true &turn=0-> 1-((q_w_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=finish) + ((q_w_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=task_failed); 
+  [stag1] s1=med_blink_med_buzz &color1=3& (hw_state=1 |env_state1=1) & Rec_motif1=false & staggered=true&turn=0-> 0.5 : (s1'=finish) + 0.5 : (s1'=task_failed); 
+  [stag1] s1=med_blink_med_buzz &color1=3& hw_state=0& Rec_motif1=false & staggered=true&turn=0-> ((q_w_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=finish) + 1-((q_w_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=task_failed);//empirical data
 //med-med simultaneous actuating Blue
-[stag1] s1=med_blink_med_buzz &color1=2& (hw_state=2 |env_state1=2) & Rec_motif1=false & staggered=true-> 1-((q_b_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=finish) + ((q_b_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=task_failed); 
-  [stag1] s1=med_blink_med_buzz &color1=2& (hw_state=1 |env_state1=1)& Rec_motif1=false & staggered=true -> 0.5 : (s1'=finish) + 0.5 : (s1'=task_failed); 
-  [stag1] s1=med_blink_med_buzz &color1=2& hw_state=0& Rec_motif1=false & staggered=true-> ((q_b_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=finish) + 1-((q_b_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=task_failed);//empirical data
+[stag1] s1=med_blink_med_buzz &color1=2& (hw_state=2 |env_state1=2) & Rec_motif1=false & staggered=true&turn=0-> 1-((q_b_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=finish) + ((q_b_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=task_failed); 
+  [stag1] s1=med_blink_med_buzz &color1=2& (hw_state=1 |env_state1=1)& Rec_motif1=false & staggered=true&turn=0 -> 0.5 : (s1'=finish) + 0.5 : (s1'=task_failed); 
+  [stag1] s1=med_blink_med_buzz &color1=2& hw_state=0& Rec_motif1=false & staggered=true&turn=0-> ((q_b_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=finish) + 1-((q_b_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=task_failed);//empirical data
 //med-med simultaneous actuating Red
-  [stag1] s1=med_blink_med_buzz &color1=1& (hw_state=2 |env_state1=2)& Rec_motif1=false & staggered=true -> 1-((q_r_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=finish) + ((q_r_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=task_failed); 
-  [stag1] s1=med_blink_med_buzz &color1=1& (hw_state=1 |env_state1=1) & Rec_motif1=false & staggered=true-> 0.5 : (s1'=finish) + 0.5 : (s1'=task_failed); 
-  [stag1] s1=med_blink_med_buzz &color1=1& hw_state=0 & Rec_motif1=false & staggered=true-> ((q_r_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=finish) + 1-((q_r_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=task_failed);//empirical data
+  [stag1] s1=med_blink_med_buzz &color1=1& (hw_state=2 |env_state1=2)& Rec_motif1=false & staggered=true&turn=0 -> 1-((q_r_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=finish) + ((q_r_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=task_failed); 
+  [stag1] s1=med_blink_med_buzz &color1=1& (hw_state=1 |env_state1=1) & Rec_motif1=false & staggered=true&turn=0-> 0.5 : (s1'=finish) + 0.5 : (s1'=task_failed); 
+  [stag1] s1=med_blink_med_buzz &color1=1& hw_state=0 & Rec_motif1=false & staggered=true&turn=0-> ((q_r_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=finish) + 1-((q_r_high_c1*gamma)*q_high_pitch_c1*beta2) : (s1'=task_failed);//empirical data
 
 //High LED white
-  [stag1] s1=high_Led  &color1=3& hw_state=2 & Rec_motif1=false & staggered=true -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_Led  &color1=3& hw_state=1 & Rec_motif1=false & staggered=true -> (s1'=med_Led);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=2 & move=1& Rec_motif1=false & staggered=true->0.5  : (s1'=med_Led) + 0.5 : (s1'=low_Led);// Priority 3: environment sensing
-  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=0 & move=1& Rec_motif1=false & staggered=true->(1-(q_w_high_c1*gamma)) : (s1'=task_failed)  +(q_w_high_c1*gamma)/2  : (s1'=med_Led) + (q_w_high_c1*gamma)/2 : (s1'=low_Led);// when movement un-intentionally
-  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true->0.5 : (s1'=med_Led) + 0.5 : (s1'=low_Led);
-  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=0 & (sound=0 & move=0) & Rec_motif1=false & staggered=true-> (q_w_high_c1*gamma) : (s1'=finish) + (1-(q_w_high_c1*gamma))/2 : (s1'=med_Led) + (1-(q_w_high_c1*gamma))/2 : (s1'=low_Led); // default (empirical)
+  [stag1] s1=high_Led  &color1=3& hw_state=2 & Rec_motif1=false & staggered=true &turn=0-> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_Led  &color1=3& hw_state=1 & Rec_motif1=false & staggered=true &turn=0-> (s1'=med_Led);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=2 & move=1& Rec_motif1=false & staggered=true&turn=0->0.5  : (s1'=med_Led) + 0.5 : (s1'=low_Led);// Priority 3: environment sensing
+  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=0 & move=1& Rec_motif1=false & staggered=true&turn=0->(1-(q_w_high_c1*gamma)) : (s1'=task_failed)  +(q_w_high_c1*gamma)/2  : (s1'=med_Led) + (q_w_high_c1*gamma)/2 : (s1'=low_Led);// when movement un-intentionally
+  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true&turn=0->0.5 : (s1'=med_Led) + 0.5 : (s1'=low_Led);
+  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=0 & (sound=0 & move=0) & Rec_motif1=false & staggered=true&turn=0-> (q_w_high_c1*gamma) : (s1'=finish) + (1-(q_w_high_c1*gamma))/2 : (s1'=med_Led) + (1-(q_w_high_c1*gamma))/2 : (s1'=low_Led); // default (empirical)
 //High LED Blue
-  [stag1] s1=high_Led  &color1=2& hw_state=2 & Rec_motif1=false & staggered=true -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_Led  &color1=2& hw_state=1 & Rec_motif1=false & staggered=true -> (s1'=med_Led);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=2 & move=1& Rec_motif1=false & staggered=true->0.5  : (s1'=med_Led) + 0.5 : (s1'=low_Led);// Priority 3: environment sensing
-  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=0 & move=1& Rec_motif1=false & staggered=true->(1-(q_b_high_c1*gamma)) : (s1'=task_failed)  +(q_b_high_c1*gamma)/2  : (s1'=med_Led) + (q_b_high_c1*gamma)/2 : (s1'=low_Led);// when movement un-intentionally
-  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true->0.5 : (s1'=med_Led) + 0.5 : (s1'=low_Led);
-  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=0 & (sound=0 & move=0)& Rec_motif1=false & staggered=true -> (q_b_high_c1*gamma) : (s1'=finish) + (1-(q_b_high_c1*gamma))/2 : (s1'=med_Led) + (1-(q_b_high_c1*gamma))/2 : (s1'=low_Led); // default (empirical)
+  [stag1] s1=high_Led  &color1=2& hw_state=2 & Rec_motif1=false & staggered=true &turn=0-> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_Led  &color1=2& hw_state=1 & Rec_motif1=false & staggered=true &turn=0-> (s1'=med_Led);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=2 & move=1& Rec_motif1=false & staggered=true&turn=0->0.5  : (s1'=med_Led) + 0.5 : (s1'=low_Led);// Priority 3: environment sensing
+  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=0 & move=1& Rec_motif1=false & staggered=true&turn=0->(1-(q_b_high_c1*gamma)) : (s1'=task_failed)  +(q_b_high_c1*gamma)/2  : (s1'=med_Led) + (q_b_high_c1*gamma)/2 : (s1'=low_Led);// when movement un-intentionally
+  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true&turn=0->0.5 : (s1'=med_Led) + 0.5 : (s1'=low_Led);
+  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=0 & (sound=0 & move=0)& Rec_motif1=false & staggered=true &turn=0-> (q_b_high_c1*gamma) : (s1'=finish) + (1-(q_b_high_c1*gamma))/2 : (s1'=med_Led) + (1-(q_b_high_c1*gamma))/2 : (s1'=low_Led); // default (empirical)
 //High LED Red
-   [stag1] s1=high_Led  &color1=1& hw_state=2 & Rec_motif1=false & staggered=true -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_Led  &color1=1& hw_state=1 & Rec_motif1=false & staggered=true -> (s1'=med_Led);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=2 & move=1& Rec_motif1=false & staggered=true->0.5  : (s1'=med_Led) + 0.5 : (s1'=low_Led);// Priority 3: environment sensing
-  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=0 & move=1& Rec_motif1=false & staggered=true->(1-(q_r_high_c1*gamma)) : (s1'=task_failed)  +(q_r_high_c1*gamma)/2  : (s1'=med_Led) + (q_r_high_c1*gamma)/2 : (s1'=low_Led);// when movement un-intentionally
-  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true->0.5 : (s1'=med_Led) + 0.5 : (s1'=low_Led);
-  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=0 & (sound=0 & move=0)& Rec_motif1=false & staggered=true -> (q_r_high_c1*gamma) : (s1'=finish) + (1-(q_r_high_c1*gamma))/2 : (s1'=med_Led) + (1-(q_r_high_c1*gamma))/2 : (s1'=low_Led); // default (empirical)
+   [stag1] s1=high_Led  &color1=1& hw_state=2 & Rec_motif1=false & staggered=true &turn=0-> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_Led  &color1=1& hw_state=1 & Rec_motif1=false & staggered=true &turn=0-> (s1'=med_Led);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=2 & move=1& Rec_motif1=false & staggered=true&turn=0->0.5  : (s1'=med_Led) + 0.5 : (s1'=low_Led);// Priority 3: environment sensing
+  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=0 & move=1& Rec_motif1=false & staggered=true&turn=0->(1-(q_r_high_c1*gamma)) : (s1'=task_failed)  +(q_r_high_c1*gamma)/2  : (s1'=med_Led) + (q_r_high_c1*gamma)/2 : (s1'=low_Led);// when movement un-intentionally
+  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=false & staggered=true&turn=0->0.5 : (s1'=med_Led) + 0.5 : (s1'=low_Led);
+  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=0 & (sound=0 & move=0)& Rec_motif1=false & staggered=true &turn=0-> (q_r_high_c1*gamma) : (s1'=finish) + (1-(q_r_high_c1*gamma))/2 : (s1'=med_Led) + (1-(q_r_high_c1*gamma))/2 : (s1'=low_Led); // default (empirical)
 
 //Med LED white
-  [stag1] s1=med_Led  &color1=3& (hw_state=2 |hw_state=1) & Rec_motif1=false & staggered=true -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag1] s1=med_Led  &color1=3& hw_state=0 & (env_state1=2 |env_state1=1)  & (sound=1 | move=1)& Rec_motif1=false & staggered=true-> (s1'=low_Led);// Priority 3: environment sensing
-  [stag1] s1=med_Led  &color1=3& hw_state=0 & (sound=0 | move=0)& Rec_motif1=false & staggered=true-> (q_w_high_c1*gamma)*beta1 : (s1'=finish) + 1-((q_w_high_c1*gamma)*beta1) : (s1'=low_Led);// default (empirical)
-  [stag1] s1=med_Led  &color1=3& hw_state=0 & (move=1)& Rec_motif1=false & staggered=true-> 1-((q_w_high_c1*gamma)*beta1) : (s1'=task_failed) + (q_w_high_c1*gamma)*beta1 : (s1'=low_Led);// when movement un-intentionally
+  [stag1] s1=med_Led  &color1=3& (hw_state=2 |hw_state=1) & Rec_motif1=false & staggered=true &turn=0-> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag1] s1=med_Led  &color1=3& hw_state=0 & (env_state1=2 |env_state1=1)  & (sound=1 | move=1)& Rec_motif1=false & staggered=true&turn=0-> (s1'=low_Led);// Priority 3: environment sensing
+  [stag1] s1=med_Led  &color1=3& hw_state=0 & (sound=0 | move=0)& Rec_motif1=false & staggered=true&turn=0-> (q_w_high_c1*gamma)*beta1 : (s1'=finish) + 1-((q_w_high_c1*gamma)*beta1) : (s1'=low_Led);// default (empirical)
+  [stag1] s1=med_Led  &color1=3& hw_state=0 & (move=1)& Rec_motif1=false & staggered=true&turn=0-> 1-((q_w_high_c1*gamma)*beta1) : (s1'=task_failed) + (q_w_high_c1*gamma)*beta1 : (s1'=low_Led);// when movement un-intentionally
 //Med LED Blue
-  [stag1] s1=med_Led   &color1=2& (hw_state=2 |hw_state=1) & Rec_motif1=false & staggered=true -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag1] s1=med_Led  &color1=2& hw_state=0 & (env_state1=2 |env_state1=1)  & (sound=1 | move=1)& Rec_motif1=false & staggered=true-> (s1'=low_Led);// Priority 3: environment sensing
-  [stag1] s1=med_Led  &color1=2& hw_state=0 & (sound=0 | move=0)& Rec_motif1=false & staggered=true-> (q_b_high_c1*gamma)*beta1 : (s1'=finish) + 1-((q_b_high_c1*gamma)*beta1) : (s1'=low_Led);// default (empirical)
-  [stag1] s1=med_Led  &color1=2& hw_state=0 & (move=1)& Rec_motif1=false & staggered=true-> 1-((q_b_high_c1*gamma)*beta1) : (s1'=task_failed) + (q_b_high_c1*gamma)*beta1 : (s1'=low_Led);// when movement un-intentionally
+  [stag1] s1=med_Led   &color1=2& (hw_state=2 |hw_state=1) & Rec_motif1=false & staggered=true &turn=0-> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag1] s1=med_Led  &color1=2& hw_state=0 & (env_state1=2 |env_state1=1)  & (sound=1 | move=1)& Rec_motif1=false & staggered=true&turn=0-> (s1'=low_Led);// Priority 3: environment sensing
+  [stag1] s1=med_Led  &color1=2& hw_state=0 & (sound=0 | move=0)& Rec_motif1=false & staggered=true&turn=0-> (q_b_high_c1*gamma)*beta1 : (s1'=finish) + 1-((q_b_high_c1*gamma)*beta1) : (s1'=low_Led);// default (empirical)
+  [stag1] s1=med_Led  &color1=2& hw_state=0 & (move=1)& Rec_motif1=false & staggered=true&turn=0-> 1-((q_b_high_c1*gamma)*beta1) : (s1'=task_failed) + (q_b_high_c1*gamma)*beta1 : (s1'=low_Led);// when movement un-intentionally
 //Med LED Red
-  [stag1] s1=med_Led   &color1=1& (hw_state=2 |hw_state=1) & Rec_motif1=false & staggered=true -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag1] s1=med_Led  &color1=1& hw_state=0 & (env_state1=2 |env_state1=1)  & (sound=1 | move=1)& Rec_motif1=false & staggered=true-> (s1'=low_Led);// Priority 3: environment sensing
-  [stag1] s1=med_Led  &color1=1& hw_state=0 & (sound=0 | move=0)& Rec_motif1=false & staggered=true-> (q_r_high_c1*gamma)*beta1 : (s1'=finish) + 1-((q_r_high_c1*gamma)*beta1) : (s1'=low_Led);// default (empirical)
-  [stag1] s1=med_Led  &color1=1& hw_state=0 & (move=1)& Rec_motif1=false & staggered=true-> 1-((q_r_high_c1*gamma)*beta1) : (s1'=task_failed) + (q_r_high_c1*gamma)*beta1 : (s1'=low_Led);// when movement un-intentionally
+  [stag1] s1=med_Led   &color1=1& (hw_state=2 |hw_state=1) & Rec_motif1=false & staggered=true &turn=0-> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag1] s1=med_Led  &color1=1& hw_state=0 & (env_state1=2 |env_state1=1)  & (sound=1 | move=1)& Rec_motif1=false & staggered=true&turn=0-> (s1'=low_Led);// Priority 3: environment sensing
+  [stag1] s1=med_Led  &color1=1& hw_state=0 & (sound=0 | move=0)& Rec_motif1=false & staggered=true&turn=0-> (q_r_high_c1*gamma)*beta1 : (s1'=finish) + 1-((q_r_high_c1*gamma)*beta1) : (s1'=low_Led);// default (empirical)
+  [stag1] s1=med_Led  &color1=1& hw_state=0 & (move=1)& Rec_motif1=false & staggered=true&turn=0-> 1-((q_r_high_c1*gamma)*beta1) : (s1'=task_failed) + (q_r_high_c1*gamma)*beta1 : (s1'=low_Led);// when movement un-intentionally
 
 //low led white
-  [stag1] s1=low_Led &color1=3& (hw_state=2 |env_state1=2) & Rec_motif1=false & staggered=true-> 1-((q_w_high_c1*gamma)*beta2) : (s1'=finish) + (q_w_high_c1*gamma)*beta2 : (s1'=task_failed); 
-  [stag1] s1=low_Led &color1=3& (hw_state=0 |hw_state=1)& (env_state1=1 |env_state1=0)& Rec_motif1=false & staggered=true-> (q_w_high_c1*gamma)*beta2 : (s1'=finish) + 1-((q_w_high_c1*gamma)*beta2) : (s1'=task_failed);// default
+  [stag1] s1=low_Led &color1=3& (hw_state=2 |env_state1=2) & Rec_motif1=false & staggered=true&turn=0-> 1-((q_w_high_c1*gamma)*beta2) : (s1'=finish) + (q_w_high_c1*gamma)*beta2 : (s1'=task_failed); 
+  [stag1] s1=low_Led &color1=3& (hw_state=0 |hw_state=1)& (env_state1=1 |env_state1=0)& Rec_motif1=false & staggered=true&turn=0-> (q_w_high_c1*gamma)*beta2 : (s1'=finish) + 1-((q_w_high_c1*gamma)*beta2) : (s1'=task_failed);// default
 //low led Blue
-  [stag1] s1=low_Led &color1=2& (hw_state=2 |env_state1=2)& Rec_motif1=false & staggered=true -> 1-((q_b_high_c1*gamma)*beta2) : (s1'=finish) + (q_b_high_c1*gamma)*beta2 : (s1'=task_failed); 
-  [stag1] s1=low_Led &color1=2& (hw_state=0 |hw_state=1)& (env_state1=1 |env_state1=0)& Rec_motif1=false & staggered=true-> (q_b_high_c1*gamma)*beta2 : (s1'=finish) + 1-((q_b_high_c1*gamma)*beta2) : (s1'=task_failed);// default
+  [stag1] s1=low_Led &color1=2& (hw_state=2 |env_state1=2)& Rec_motif1=false & staggered=true &turn=0-> 1-((q_b_high_c1*gamma)*beta2) : (s1'=finish) + (q_b_high_c1*gamma)*beta2 : (s1'=task_failed); 
+  [stag1] s1=low_Led &color1=2& (hw_state=0 |hw_state=1)& (env_state1=1 |env_state1=0)& Rec_motif1=false & staggered=true&turn=0-> (q_b_high_c1*gamma)*beta2 : (s1'=finish) + 1-((q_b_high_c1*gamma)*beta2) : (s1'=task_failed);// default
 //low led Red
-   [stag1] s1=low_Led &color1=1& (hw_state=2 |env_state1=2)& Rec_motif1=false & staggered=true -> 1-((q_r_high_c1*gamma)*beta2) : (s1'=finish) + (q_r_high_c1*gamma)*beta2 : (s1'=task_failed); 
-  [stag1] s1=low_Led &color1=1& (hw_state=0 |hw_state=1)& (env_state1=1 |env_state1=0)& Rec_motif1=false & staggered=true-> (q_r_high_c1*gamma)*beta2 : (s1'=finish) + 1-((q_r_high_c1*gamma)*beta2) : (s1'=task_failed);// default
+   [stag1] s1=low_Led &color1=1& (hw_state=2 |env_state1=2)& Rec_motif1=false & staggered=true &turn=0-> 1-((q_r_high_c1*gamma)*beta2) : (s1'=finish) + (q_r_high_c1*gamma)*beta2 : (s1'=task_failed); 
+  [stag1] s1=low_Led &color1=1& (hw_state=0 |hw_state=1)& (env_state1=1 |env_state1=0)& Rec_motif1=false & staggered=true&turn=0-> (q_r_high_c1*gamma)*beta2 : (s1'=finish) + 1-((q_r_high_c1*gamma)*beta2) : (s1'=task_failed);// default
 //////////////////////////////
   // Probabilistic transitions (BB1-specific)RECTANGLE pattern staggered with other clusters
-///////////////////////////////
+/////////////////////////////// 
  //high pitch
-  [stag1] s1=high_pitch & hw_state=2 & Rec_motif1=true & staggered=true -> (s1'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_pitch & hw_state=1 & Rec_motif1=true & staggered=true -> (s1'=med_pitch);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_pitch & hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true ->(1-q_high_pitch_c1)/2 : (s1'=med_pitch) + 1-((1-q_high_pitch_c1)/2) : (s1'=low_pitch);// Priority 3: environment sensing
-  [stag1] s1=high_pitch & hw_state=0 & env_state1= 0 & move=1& Rec_motif1=true & staggered=true->(1-q_high_pitch_c1) : (s1'=task_failed)+ q_high_pitch_c1/2 : (s1'=med_pitch) + q_high_pitch_c1/2 : (s1'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_pitch & hw_state=0 & env_state1=1  & sound=1 & Rec_motif1=true & staggered=true->1-((1-q_high_pitch_c1)/2) : (s1'=med_pitch) + (1-q_high_pitch_c1)/2 : (s1'=low_pitch);
-  [stag1] s1=high_pitch& hw_state=0   & (sound=0 & move=0) & Rec_motif1=true & staggered=true-> q_high_pitch_c1  : (s1'=finish) + (1-q_high_pitch_c1)/2 : (s1'=med_pitch) + (1-q_high_pitch_c1)/2 : (s1'=low_pitch); // default
+  [stag1] s1=high_pitch & hw_state=2 & Rec_motif1=true & staggered=true&turn=0 -> (s1'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_pitch & hw_state=1 & Rec_motif1=true & staggered=true&turn=0 -> (s1'=med_pitch);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_pitch & hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true&turn=0 ->(1-q_high_pitch_c1)/2 : (s1'=med_pitch) + 1-((1-q_high_pitch_c1)/2) : (s1'=low_pitch);// Priority 3: environment sensing
+  [stag1] s1=high_pitch & hw_state=0 & env_state1= 0 & move=1& Rec_motif1=true & staggered=true&turn=0->(1-q_high_pitch_c1) : (s1'=task_failed)+ q_high_pitch_c1/2 : (s1'=med_pitch) + q_high_pitch_c1/2 : (s1'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_pitch & hw_state=0 & env_state1=1  & sound=1 & Rec_motif1=true & staggered=true&turn=0->1-((1-q_high_pitch_c1)/2) : (s1'=med_pitch) + (1-q_high_pitch_c1)/2 : (s1'=low_pitch);
+  [stag1] s1=high_pitch& hw_state=0   & (sound=0 & move=0) & Rec_motif1=true & staggered=true&turn=0-> q_high_pitch_c1  : (s1'=finish) + (1-q_high_pitch_c1)/2 : (s1'=med_pitch) + (1-q_high_pitch_c1)/2 : (s1'=low_pitch); // default
 
 //med pitch
-  [stag1] s1=med_pitch & (hw_state=2 |hw_state=1) & Rec_motif1=true & staggered=true -> (s1'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag1] s1=med_pitch & hw_state=0 & (env_state1=2 |env_state1=1)  &( sound=1 |move=1)& Rec_motif1=true & staggered=true -> (s1'=low_pitch);// Priority 3: environment sensing
-  [stag1] s1=med_pitch & hw_state=0 & env_state1= 0 & move=1& Rec_motif1=true & staggered=true-> 1-(q_high_pitch_c1*beta1) : (s1'=task_failed)+ q_high_pitch_c1*beta1 : (s1'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=med_pitch& hw_state=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true-> q_high_pitch_c1*beta1 : (s1'=finish) + (1-(q_high_pitch_c1*beta1)) : (s1'=low_pitch);// default
+  [stag1] s1=med_pitch & (hw_state=2 |hw_state=1) & Rec_motif1=true & staggered=true&turn=0 -> (s1'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag1] s1=med_pitch & hw_state=0 & (env_state1=2 |env_state1=1)  &( sound=1 |move=1)& Rec_motif1=true & staggered=true&turn=0 -> (s1'=low_pitch);// Priority 3: environment sensing
+  [stag1] s1=med_pitch & hw_state=0 & env_state1= 0 & move=1& Rec_motif1=true & staggered=true&turn=0-> 1-(q_high_pitch_c1*beta1) : (s1'=task_failed)+ q_high_pitch_c1*beta1 : (s1'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=med_pitch& hw_state=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true&turn=0-> q_high_pitch_c1*beta1 : (s1'=finish) + (1-(q_high_pitch_c1*beta1)) : (s1'=low_pitch);// default
 
 //low pitch
-  [stag1] s1=low_pitch & (hw_state=2 |env_state1=2)& Rec_motif1=true & staggered=true -> (1-(q_high_pitch_c1*beta2)) : (s1'=finish) + q_high_pitch_c1*beta2 : (s1'=task_failed); 
-  [stag1] s1=low_pitch & (hw_state=1 |env_state1=1)& Rec_motif1=true & staggered=true -> (1-((q_high_pitch_c1*beta2)/2)) : (s1'=finish) + (q_high_pitch_c1*beta2)/2 : (s1'=task_failed); 
-  [stag1] s1=low_pitch & hw_state=0 & Rec_motif1=true & staggered=true-> q_high_pitch_c1*beta2 : (s1'=finish) + (1-(q_high_pitch_c1*beta2)) : (s1'=task_failed);//even if movement it is already very low consuming and it is the lowest state so failure exist but not as when a higher consuming state
+  [stag1] s1=low_pitch & (hw_state=2 |env_state1=2)& Rec_motif1=true & staggered=true&turn=0 -> (1-(q_high_pitch_c1*beta2)) : (s1'=finish) + q_high_pitch_c1*beta2 : (s1'=task_failed); 
+  [stag1] s1=low_pitch & (hw_state=1 |env_state1=1)& Rec_motif1=true & staggered=true&turn=0 -> (1-((q_high_pitch_c1*beta2)/2)) : (s1'=finish) + (q_high_pitch_c1*beta2)/2 : (s1'=task_failed); 
+  [stag1] s1=low_pitch & hw_state=0 & Rec_motif1=true & staggered=true&turn=0-> q_high_pitch_c1*beta2 : (s1'=finish) + (1-(q_high_pitch_c1*beta2)) : (s1'=task_failed);//even if movement it is already very low consuming and it is the lowest state so failure exist but not as when a higher consuming state
 
 //sensor-environment transition
-  [stag1] s1=listen_on_moving_on & Rec_motif1=true & staggered=true-> 0.95 : (s1'=finish) + 0.05 : (s1'=task_failed);
-  [stag1] s1=listen_on_moving_off & Rec_motif1=true & staggered=true-> 0.95 : (s1'=finish) + 0.05 : (s1'=task_failed);
-  [stag1] s1=listen_off_moving_on& Rec_motif1=true & staggered=true -> 0.95 : (s1'=finish) + 0.05 : (s1'=task_failed);
+  [stag1] s1=listen_on_moving_on & Rec_motif1=true & staggered=true&turn=0-> 0.95 : (s1'=finish) + 0.05 : (s1'=task_failed);
+  [stag1] s1=listen_on_moving_off & Rec_motif1=true & staggered=true&turn=0-> 0.95 : (s1'=finish) + 0.05 : (s1'=task_failed);
+  [stag1] s1=listen_off_moving_on& Rec_motif1=true & staggered=true&turn=0 -> 0.95 : (s1'=finish) + 0.05 : (s1'=task_failed);
 
 //high-high simultaneous actuating white
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=2 & Rec_motif1=true & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=1 & Rec_motif1=true & staggered=true -> 0.5 : (s1'=high_blink_med_buzz) +0.5: (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true->0.5 : (s1'=med_blink_high_buzz) + 0.5 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=true & staggered=true->1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=task_failed)+(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + (((q_w_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true->((q_w_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=high_blink_med_buzz) + 1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true -> ((q_w_high_c1*gamma)*theta)*q_high_pitch_c1: (s1'=finish) + (1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=high_blink_med_buzz) + (1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=med_blink_high_buzz) + (1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=med_blink_med_buzz); //default(Empirical)
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=2 & Rec_motif1=true & staggered=true&turn=0 -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=1 & Rec_motif1=true & staggered=true&turn=0 -> 0.5 : (s1'=high_blink_med_buzz) +0.5: (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true&turn=0->0.5 : (s1'=med_blink_high_buzz) + 0.5 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=true & staggered=true&turn=0->1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=task_failed)+(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + (((q_w_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true&turn=0->((q_w_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=high_blink_med_buzz) + 1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true&turn=0 -> ((q_w_high_c1*gamma)*theta)*q_high_pitch_c1: (s1'=finish) + (1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=high_blink_med_buzz) + (1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=med_blink_high_buzz) + (1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=med_blink_med_buzz); //default(Empirical)
 //high-high simultaneous actuating blue
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=2 & Rec_motif1=true & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=1 & Rec_motif1=true & staggered=true -> 0.5 : (s1'=high_blink_med_buzz) +0.5: (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true->0.5 : (s1'=med_blink_high_buzz) + 0.5 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=true & staggered=true->1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=task_failed)+(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + (((q_b_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true->((q_b_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=high_blink_med_buzz) + 1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & (sound=0 & move=0) & Rec_motif1=true & staggered=true-> ((q_b_high_c1*gamma)*theta)*q_high_pitch_c1: (s1'=finish) + (1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=high_blink_med_buzz) + (1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=med_blink_high_buzz) + (1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=med_blink_med_buzz); //default(Empirical)
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=2 & Rec_motif1=true & staggered=true&turn=0 -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=1 & Rec_motif1=true & staggered=true&turn=0 -> 0.5 : (s1'=high_blink_med_buzz) +0.5: (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true&turn=0->0.5 : (s1'=med_blink_high_buzz) + 0.5 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=true & staggered=true&turn=0->1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=task_failed)+(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + (((q_b_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true&turn=0->((q_b_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=high_blink_med_buzz) + 1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & (sound=0 & move=0) & Rec_motif1=true & staggered=true&turn=0-> ((q_b_high_c1*gamma)*theta)*q_high_pitch_c1: (s1'=finish) + (1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=high_blink_med_buzz) + (1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=med_blink_high_buzz) + (1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=med_blink_med_buzz); //default(Empirical)
 //high-high simultaneous actuating RED
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=2 & Rec_motif1=true & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=1 & Rec_motif1=true & staggered=true -> 0.5 : (s1'=high_blink_med_buzz) +0.5: (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true->0.5 : (s1'=med_blink_high_buzz) + 0.5 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=true & staggered=true->1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=task_failed)+(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + (((q_r_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true->((q_r_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=high_blink_med_buzz) + 1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true -> ((q_r_high_c1*gamma)*theta)*q_high_pitch_c1: (s1'=finish) + (1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=high_blink_med_buzz) + (1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=med_blink_high_buzz) + (1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=med_blink_med_buzz); //default(Empirical)
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=2 & Rec_motif1=true & staggered=true&turn=0 -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=1 & Rec_motif1=true & staggered=true&turn=0 -> 0.5 : (s1'=high_blink_med_buzz) +0.5: (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true&turn=0->0.5 : (s1'=med_blink_high_buzz) + 0.5 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=true & staggered=true&turn=0->1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=task_failed)+(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + (((q_r_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true&turn=0->((q_r_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=high_blink_med_buzz) + 1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true&turn=0 -> ((q_r_high_c1*gamma)*theta)*q_high_pitch_c1: (s1'=finish) + (1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=high_blink_med_buzz) + (1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=med_blink_high_buzz) + (1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1))/3 : (s1'=med_blink_med_buzz); //default(Empirical)
 
 //high-med simultaneous actuating white
-  [stag1] s1=high_blink_med_buzz &color1=3 & hw_state=2& Rec_motif1=true & staggered=true  -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_blink_med_buzz &color1=3 & hw_state=1 & Rec_motif1=true & staggered=true -> 0.5 : (s1'=med_blink_med_buzz) + 0.5 : (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
-  [stag1] s1=high_blink_med_buzz &color1=3& hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true->1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz) + ((q_w_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=true & staggered=true->1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=task_failed)+(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + (((q_w_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_blink_med_buzz &color1=3& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true->((q_w_high_c1*gamma)*theta)*q_high_pitch_c1  : (s1'=med_blink_med_buzz) + 1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
-  [stag1] s1=high_blink_med_buzz &color1=3& hw_state=0 & env_state1=0  & (sound=0 & move=0) & Rec_motif1=true & staggered=true-> ((q_w_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=finish)  + (1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1))/2 : (s1'=med_blink_high_buzz) + (1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1))/2 : (s1'=med_blink_med_buzz); //default(empirical)
+  [stag1] s1=high_blink_med_buzz &color1=3 & hw_state=2& Rec_motif1=true & staggered=true&turn=0  -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_blink_med_buzz &color1=3 & hw_state=1 & Rec_motif1=true & staggered=true&turn=0 -> 0.5 : (s1'=med_blink_med_buzz) + 0.5 : (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
+  [stag1] s1=high_blink_med_buzz &color1=3& hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true&turn=0->1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz) + ((q_w_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=high_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=true & staggered=true&turn=0->1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=task_failed)+(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + (((q_w_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_blink_med_buzz &color1=3& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true&turn=0->((q_w_high_c1*gamma)*theta)*q_high_pitch_c1  : (s1'=med_blink_med_buzz) + 1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
+  [stag1] s1=high_blink_med_buzz &color1=3& hw_state=0 & env_state1=0  & (sound=0 & move=0) & Rec_motif1=true & staggered=true&turn=0-> ((q_w_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=finish)  + (1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1))/2 : (s1'=med_blink_high_buzz) + (1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1))/2 : (s1'=med_blink_med_buzz); //default(empirical)
  //high-med simultaneous actuating blue
-   [stag1] s1=high_blink_med_buzz &color1=2 & hw_state=2 & Rec_motif1=true & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_blink_med_buzz &color1=2 & hw_state=1 & Rec_motif1=true & staggered=true -> 0.5 : (s1'=med_blink_med_buzz) + 0.5 : (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
-  [stag1] s1=high_blink_med_buzz &color1=2& hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true->1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz) + ((q_b_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=true & staggered=true->1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=task_failed)+(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + (((q_b_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_blink_med_buzz &color1=2& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true->((q_b_high_c1*gamma)*theta)*q_high_pitch_c1  : (s1'=med_blink_med_buzz) + 1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
-  [stag1] s1=high_blink_med_buzz &color1=2& hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true -> ((q_b_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=finish)  + (1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1))/2 : (s1'=med_blink_high_buzz) + (1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1))/2 : (s1'=med_blink_med_buzz); //default(empirical)
+   [stag1] s1=high_blink_med_buzz &color1=2 & hw_state=2 & Rec_motif1=true & staggered=true&turn=0 -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_blink_med_buzz &color1=2 & hw_state=1 & Rec_motif1=true & staggered=true&turn=0 -> 0.5 : (s1'=med_blink_med_buzz) + 0.5 : (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
+  [stag1] s1=high_blink_med_buzz &color1=2& hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true&turn=0->1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz) + ((q_b_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=high_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=true & staggered=true&turn=0->1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=task_failed)+(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + (((q_b_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_blink_med_buzz &color1=2& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true&turn=0->((q_b_high_c1*gamma)*theta)*q_high_pitch_c1  : (s1'=med_blink_med_buzz) + 1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
+  [stag1] s1=high_blink_med_buzz &color1=2& hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true&turn=0 -> ((q_b_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=finish)  + (1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1))/2 : (s1'=med_blink_high_buzz) + (1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1))/2 : (s1'=med_blink_med_buzz); //default(empirical)
  
 //high-med simultaneous actuating Red
-  [stag1] s1=high_blink_med_buzz &color1=1 & hw_state=2 & Rec_motif1=true & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_blink_med_buzz &color1=1 & hw_state=1 & Rec_motif1=true & staggered=true -> 0.5 : (s1'=med_blink_med_buzz) + 0.5 : (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
-  [stag1] s1=high_blink_med_buzz &color1=1& hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true->1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz) + ((q_r_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=true & staggered=true->1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=task_failed)+(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + (((q_r_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag1] s1=high_blink_med_buzz &color1=1& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true->((q_r_high_c1*gamma)*theta)*q_high_pitch_c1  : (s1'=med_blink_med_buzz) + 1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
-  [stag1] s1=high_blink_med_buzz &color1=1& hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true -> ((q_r_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=finish)  + (1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1))/2 : (s1'=med_blink_high_buzz) + (1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1))/2 : (s1'=med_blink_med_buzz); //default(empirical)
+  [stag1] s1=high_blink_med_buzz &color1=1 & hw_state=2 & Rec_motif1=true & staggered=true&turn=0 -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_blink_med_buzz &color1=1 & hw_state=1 & Rec_motif1=true & staggered=true&turn=0 -> 0.5 : (s1'=med_blink_med_buzz) + 0.5 : (s1'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
+  [stag1] s1=high_blink_med_buzz &color1=1& hw_state=0 & env_state1=2  & move=1& Rec_motif1=true & staggered=true&turn=0->1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz) + ((q_r_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=high_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & move=1& Rec_motif1=true & staggered=true&turn=0->1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=task_failed)+(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_high_buzz) + (((q_r_high_c1*gamma)*theta)*q_high_pitch_c1)/2 : (s1'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag1] s1=high_blink_med_buzz &color1=1& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true&turn=0->((q_r_high_c1*gamma)*theta)*q_high_pitch_c1  : (s1'=med_blink_med_buzz) + 1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1) : (s1'=med_blink_high_buzz);
+  [stag1] s1=high_blink_med_buzz &color1=1& hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true&turn=0 -> ((q_r_high_c1*gamma)*theta)*q_high_pitch_c1 : (s1'=finish)  + (1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1))/2 : (s1'=med_blink_high_buzz) + (1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1))/2 : (s1'=med_blink_med_buzz); //default(empirical)
  
 
  //med-high simultaneous actuating white
-  [stag1] s1=med_blink_high_buzz &color1=3 & (hw_state=2 | hw_state=1) & Rec_motif1=true & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=med_blink_high_buzz &color1=3 & hw_state=0 & (env_state1=2 | env_state1=1)   & (sound=1 | move=1)& Rec_motif1=true & staggered=true-> (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=med_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true-> ((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta1 : (s1'=finish)  + 1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta1) : (s1'=med_blink_med_buzz); //default(empirical)
-  [stag1] s1=med_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & ( move=1)& Rec_motif1=true & staggered=true-> 1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta1) : (s1'=task_failed)  + ((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta1 : (s1'=med_blink_med_buzz); //when movement un-intentionally
+  [stag1] s1=med_blink_high_buzz &color1=3 & (hw_state=2 | hw_state=1) & Rec_motif1=true & staggered=true&turn=0 -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=med_blink_high_buzz &color1=3 & hw_state=0 & (env_state1=2 | env_state1=1)   & (sound=1 | move=1)& Rec_motif1=true & staggered=true&turn=0-> (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=med_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true&turn=0-> ((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta1 : (s1'=finish)  + 1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta1) : (s1'=med_blink_med_buzz); //default(empirical)
+  [stag1] s1=med_blink_high_buzz &color1=3 & hw_state=0 & env_state1=0  & ( move=1)& Rec_motif1=true & staggered=true&turn=0-> 1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta1) : (s1'=task_failed)  + ((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta1 : (s1'=med_blink_med_buzz); //when movement un-intentionally
  //med-high simultaneous actuating blue
-  [stag1] s1=med_blink_high_buzz &color1=2 & (hw_state=2 | hw_state=1)& Rec_motif1=true & staggered=true  -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=med_blink_high_buzz &color1=2 & hw_state=0 & (env_state1=2 | env_state1=1)   & (sound=1 | move=1)& Rec_motif1=true & staggered=true-> (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=med_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true-> ((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta1 : (s1'=finish)  + 1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta1) : (s1'=med_blink_med_buzz); //default(empirical)
-  [stag1] s1=med_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & ( move=1)& Rec_motif1=true & staggered=true-> 1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta1) : (s1'=task_failed)  + ((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta1 : (s1'=med_blink_med_buzz); //when movement un-intentionally
+  [stag1] s1=med_blink_high_buzz &color1=2 & (hw_state=2 | hw_state=1)& Rec_motif1=true & staggered=true&turn=0  -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=med_blink_high_buzz &color1=2 & hw_state=0 & (env_state1=2 | env_state1=1)   & (sound=1 | move=1)& Rec_motif1=true & staggered=true&turn=0-> (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=med_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true&turn=0-> ((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta1 : (s1'=finish)  + 1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta1) : (s1'=med_blink_med_buzz); //default(empirical)
+  [stag1] s1=med_blink_high_buzz &color1=2 & hw_state=0 & env_state1=0  & ( move=1)& Rec_motif1=true & staggered=true&turn=0-> 1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta1) : (s1'=task_failed)  + ((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta1 : (s1'=med_blink_med_buzz); //when movement un-intentionally
  //med-high simultaneous actuating Red
-  [stag1] s1=med_blink_high_buzz &color1=1 & (hw_state=2 | hw_state=1) & Rec_motif1=true & staggered=true -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=med_blink_high_buzz &color1=1 & hw_state=0 & (env_state1=2 | env_state1=1)   & (sound=1 | move=1)& Rec_motif1=true & staggered=true-> (s1'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag1] s1=med_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true-> ((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta1 : (s1'=finish)  + 1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta1) : (s1'=med_blink_med_buzz); //default(empirical)
-  [stag1] s1=med_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & ( move=1) & Rec_motif1=true & staggered=true-> 1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta1) : (s1'=task_failed)  + ((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta1 : (s1'=med_blink_med_buzz); //when movement un-intentionally
+  [stag1] s1=med_blink_high_buzz &color1=1 & (hw_state=2 | hw_state=1) & Rec_motif1=true & staggered=true&turn=0 -> (s1'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=med_blink_high_buzz &color1=1 & hw_state=0 & (env_state1=2 | env_state1=1)   & (sound=1 | move=1)& Rec_motif1=true & staggered=true&turn=0-> (s1'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag1] s1=med_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & (sound=0 & move=0)& Rec_motif1=true & staggered=true&turn=0-> ((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta1 : (s1'=finish)  + 1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta1) : (s1'=med_blink_med_buzz); //default(empirical)
+  [stag1] s1=med_blink_high_buzz &color1=1 & hw_state=0 & env_state1=0  & ( move=1) & Rec_motif1=true & staggered=true&turn=0-> 1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta1) : (s1'=task_failed)  + ((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta1 : (s1'=med_blink_med_buzz); //when movement un-intentionally
 
 
 
 //med-med simultaneous actuating white
-  [stag1] s1=med_blink_med_buzz &color1=3& (hw_state=2 |env_state1=2)& Rec_motif1=true & staggered=true -> 1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=finish) + (((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=task_failed); 
-  [stag1] s1=med_blink_med_buzz &color1=3& (hw_state=1 |env_state1=1) & Rec_motif1=true & staggered=true-> 0.5 : (s1'=finish) + 0.5 : (s1'=task_failed); 
-  [stag1] s1=med_blink_med_buzz &color1=3& hw_state=0& Rec_motif1=true & staggered=true-> (((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=finish) + 1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=task_failed);//empirical data
+  [stag1] s1=med_blink_med_buzz &color1=3& (hw_state=2 |env_state1=2)& Rec_motif1=true & staggered=true&turn=0 -> 1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=finish) + (((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=task_failed); 
+  [stag1] s1=med_blink_med_buzz &color1=3& (hw_state=1 |env_state1=1) & Rec_motif1=true & staggered=true&turn=0-> 0.5 : (s1'=finish) + 0.5 : (s1'=task_failed); 
+  [stag1] s1=med_blink_med_buzz &color1=3& hw_state=0& Rec_motif1=true & staggered=true&turn=0-> (((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=finish) + 1-(((q_w_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=task_failed);//empirical data
 //med-med simultaneous actuating Blue
-[stag1] s1=med_blink_med_buzz &color1=2& (hw_state=2 |env_state1=2) & Rec_motif1=true & staggered=true-> 1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=finish) + (((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=task_failed); 
-  [stag1] s1=med_blink_med_buzz &color1=2& (hw_state=1 |env_state1=1)& Rec_motif1=true & staggered=true -> 0.5 : (s1'=finish) + 0.5 : (s1'=task_failed); 
-  [stag1] s1=med_blink_med_buzz &color1=2& hw_state=0& Rec_motif1=true & staggered=true-> (((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=finish) + 1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=task_failed);//empirical data
+[stag1] s1=med_blink_med_buzz &color1=2& (hw_state=2 |env_state1=2) & Rec_motif1=true & staggered=true&turn=0-> 1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=finish) + (((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=task_failed); 
+  [stag1] s1=med_blink_med_buzz &color1=2& (hw_state=1 |env_state1=1)& Rec_motif1=true & staggered=true&turn=0 -> 0.5 : (s1'=finish) + 0.5 : (s1'=task_failed); 
+  [stag1] s1=med_blink_med_buzz &color1=2& hw_state=0& Rec_motif1=true & staggered=true&turn=0-> (((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=finish) + 1-(((q_b_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=task_failed);//empirical data
 //med-med simultaneous actuating Red
-  [stag1] s1=med_blink_med_buzz &color1=1& (hw_state=2 |env_state1=2)& Rec_motif1=true & staggered=true -> 1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=finish) + (((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=task_failed); 
-  [stag1] s1=med_blink_med_buzz &color1=1& (hw_state=1 |env_state1=1) & Rec_motif1=true & staggered=true-> 0.5 : (s1'=finish) + 0.5 : (s1'=task_failed); 
-  [stag1] s1=med_blink_med_buzz &color1=1& hw_state=0 & Rec_motif1=true & staggered=true-> (((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=finish) + 1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=task_failed);//empirical data
+  [stag1] s1=med_blink_med_buzz &color1=1& (hw_state=2 |env_state1=2)& Rec_motif1=true & staggered=true&turn=0 -> 1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=finish) + (((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=task_failed); 
+  [stag1] s1=med_blink_med_buzz &color1=1& (hw_state=1 |env_state1=1) & Rec_motif1=true & staggered=true&turn=0-> 0.5 : (s1'=finish) + 0.5 : (s1'=task_failed); 
+  [stag1] s1=med_blink_med_buzz &color1=1& hw_state=0 & Rec_motif1=true & staggered=true&turn=0-> (((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=finish) + 1-(((q_r_high_c1*gamma)*theta)*q_high_pitch_c1*beta2) : (s1'=task_failed);//empirical data
 
 //High LED white
-  [stag1] s1=high_Led  &color1=3& hw_state=2 & Rec_motif1=true & staggered=true -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_Led  &color1=3& hw_state=1 & Rec_motif1=true & staggered=true -> (s1'=med_Led);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=2 & move=1& Rec_motif1=true & staggered=true->0.5  : (s1'=med_Led) + 0.5 : (s1'=low_Led);// Priority 3: environment sensing
-  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=0 & move=1& Rec_motif1=true & staggered=true->(1-((q_w_high_c1*gamma)*theta)) : (s1'=task_failed)  +((q_w_high_c1*gamma)*theta)/2  : (s1'=med_Led) + ((q_w_high_c1*gamma)*theta)/2 : (s1'=low_Led);// when movement un-intentionally
-  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true->0.5 : (s1'=med_Led) + 0.5 : (s1'=low_Led);
-  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=0 & (sound=0 & move=0) & Rec_motif1=true & staggered=true-> ((q_w_high_c1*gamma)*theta) : (s1'=finish) + (1-((q_w_high_c1*gamma)*theta))/2 : (s1'=med_Led) + (1-((q_w_high_c1*gamma)*theta))/2 : (s1'=low_Led); // default (empirical)
+  [stag1] s1=high_Led  &color1=3& hw_state=2 & Rec_motif1=true & staggered=true&turn=0 -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_Led  &color1=3& hw_state=1 & Rec_motif1=true & staggered=true&turn=0 -> (s1'=med_Led);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=2 & move=1& Rec_motif1=true & staggered=true&turn=0->0.5  : (s1'=med_Led) + 0.5 : (s1'=low_Led);// Priority 3: environment sensing
+  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=0 & move=1& Rec_motif1=true & staggered=true&turn=0->(1-((q_w_high_c1*gamma)*theta)) : (s1'=task_failed)  +((q_w_high_c1*gamma)*theta)/2  : (s1'=med_Led) + ((q_w_high_c1*gamma)*theta)/2 : (s1'=low_Led);// when movement un-intentionally
+  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true&turn=0->0.5 : (s1'=med_Led) + 0.5 : (s1'=low_Led);
+  [stag1] s1=high_Led  &color1=3& hw_state=0 & env_state1=0 & (sound=0 & move=0) & Rec_motif1=true & staggered=true&turn=0-> ((q_w_high_c1*gamma)*theta) : (s1'=finish) + (1-((q_w_high_c1*gamma)*theta))/2 : (s1'=med_Led) + (1-((q_w_high_c1*gamma)*theta))/2 : (s1'=low_Led); // default (empirical)
 //High LED Blue
-  [stag1] s1=high_Led  &color1=2& hw_state=2 & Rec_motif1=true & staggered=true -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_Led  &color1=2& hw_state=1 & Rec_motif1=true & staggered=true -> (s1'=med_Led);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=2 & move=1& Rec_motif1=true & staggered=true->0.5  : (s1'=med_Led) + 0.5 : (s1'=low_Led);// Priority 3: environment sensing
-  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=0 & move=1& Rec_motif1=true & staggered=true->(1-((q_b_high_c1*gamma)*theta)) : (s1'=task_failed)  +((q_b_high_c1*gamma)*theta)/2  : (s1'=med_Led) + ((q_b_high_c1*gamma)*theta)/2 : (s1'=low_Led);// when movement un-intentionally
-  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true->0.5 : (s1'=med_Led) + 0.5 : (s1'=low_Led);
-  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=0 & (sound=0 & move=0)& Rec_motif1=true & staggered=true -> ((q_b_high_c1*gamma)*theta) : (s1'=finish) + (1-((q_b_high_c1*gamma)*theta))/2 : (s1'=med_Led) + (1-((q_b_high_c1*gamma)*theta))/2 : (s1'=low_Led); // default (empirical)
+  [stag1] s1=high_Led  &color1=2& hw_state=2 & Rec_motif1=true & staggered=true&turn=0 -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_Led  &color1=2& hw_state=1 & Rec_motif1=true & staggered=true&turn=0 -> (s1'=med_Led);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=2 & move=1& Rec_motif1=true & staggered=true&turn=0->0.5  : (s1'=med_Led) + 0.5 : (s1'=low_Led);// Priority 3: environment sensing
+  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=0 & move=1& Rec_motif1=true & staggered=true&turn=0->(1-((q_b_high_c1*gamma)*theta)) : (s1'=task_failed)  +((q_b_high_c1*gamma)*theta)/2  : (s1'=med_Led) + ((q_b_high_c1*gamma)*theta)/2 : (s1'=low_Led);// when movement un-intentionally
+  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true&turn=0->0.5 : (s1'=med_Led) + 0.5 : (s1'=low_Led);
+  [stag1] s1=high_Led  &color1=2& hw_state=0 & env_state1=0 & (sound=0 & move=0)& Rec_motif1=true & staggered=true&turn=0 -> ((q_b_high_c1*gamma)*theta) : (s1'=finish) + (1-((q_b_high_c1*gamma)*theta))/2 : (s1'=med_Led) + (1-((q_b_high_c1*gamma)*theta))/2 : (s1'=low_Led); // default (empirical)
 //High LED Red
-   [stag1] s1=high_Led  &color1=1& hw_state=2 & Rec_motif1=true & staggered=true -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag1] s1=high_Led  &color1=1& hw_state=1 & Rec_motif1=true & staggered=true -> (s1'=med_Led);// Priority 2: hardware MED -> reduce one level
-  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=2 & move=1& Rec_motif1=true & staggered=true->0.5  : (s1'=med_Led) + 0.5 : (s1'=low_Led);// Priority 3: environment sensing
-  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=0 & move=1& Rec_motif1=true & staggered=true->(1-((q_r_high_c1*gamma)*theta)) : (s1'=task_failed)  +((q_r_high_c1*gamma)*theta)/2  : (s1'=med_Led) + ((q_r_high_c1*gamma)*theta)/2 : (s1'=low_Led);// when movement un-intentionally
-  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true->0.5 : (s1'=med_Led) + 0.5 : (s1'=low_Led);
-  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=0 & (sound=0 & move=0)& Rec_motif1=true & staggered=true -> ((q_r_high_c1*gamma)*theta) : (s1'=finish) + (1-((q_r_high_c1*gamma)*theta))/2 : (s1'=med_Led) + (1-((q_r_high_c1*gamma)*theta))/2 : (s1'=low_Led); // default (empirical)
+   [stag1] s1=high_Led  &color1=1& hw_state=2 & Rec_motif1=true & staggered=true&turn=0 -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag1] s1=high_Led  &color1=1& hw_state=1 & Rec_motif1=true & staggered=true&turn=0 -> (s1'=med_Led);// Priority 2: hardware MED -> reduce one level
+  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=2 & move=1& Rec_motif1=true & staggered=true&turn=0->0.5  : (s1'=med_Led) + 0.5 : (s1'=low_Led);// Priority 3: environment sensing
+  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=0 & move=1& Rec_motif1=true & staggered=true&turn=0->(1-((q_r_high_c1*gamma)*theta)) : (s1'=task_failed)  +((q_r_high_c1*gamma)*theta)/2  : (s1'=med_Led) + ((q_r_high_c1*gamma)*theta)/2 : (s1'=low_Led);// when movement un-intentionally
+  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=1  & sound=1& Rec_motif1=true & staggered=true&turn=0->0.5 : (s1'=med_Led) + 0.5 : (s1'=low_Led);
+  [stag1] s1=high_Led  &color1=1& hw_state=0 & env_state1=0 & (sound=0 & move=0)& Rec_motif1=true & staggered=true&turn=0 -> ((q_r_high_c1*gamma)*theta) : (s1'=finish) + (1-((q_r_high_c1*gamma)*theta))/2 : (s1'=med_Led) + (1-((q_r_high_c1*gamma)*theta))/2 : (s1'=low_Led); // default (empirical)
 
 //Med LED white
-  [stag1] s1=med_Led  &color1=3& (hw_state=2 |hw_state=1) & Rec_motif1=true & staggered=true -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag1] s1=med_Led  &color1=3& hw_state=0 & (env_state1=2 |env_state1=1)  & (sound=1 | move=1)& Rec_motif1=true & staggered=true-> (s1'=low_Led);// Priority 3: environment sensing
-  [stag1] s1=med_Led  &color1=3& hw_state=0 & (sound=0 | move=0)& Rec_motif1=true & staggered=true-> ((q_w_high_c1*gamma)*theta)*beta1 : (s1'=finish) + 1-(((q_w_high_c1*gamma)*theta)*beta1) : (s1'=low_Led);// default (empirical)
-  [stag1] s1=med_Led  &color1=3& hw_state=0 & (move=1)& Rec_motif1=true & staggered=true-> 1-(((q_w_high_c1*gamma)*theta)*beta1) : (s1'=task_failed) + ((q_w_high_c1*gamma)*theta)*beta1 : (s1'=low_Led);// when movement un-intentionally
+  [stag1] s1=med_Led  &color1=3& (hw_state=2 |hw_state=1) & Rec_motif1=true & staggered=true&turn=0 -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag1] s1=med_Led  &color1=3& hw_state=0 & (env_state1=2 |env_state1=1)  & (sound=1 | move=1)& Rec_motif1=true & staggered=true&turn=0-> (s1'=low_Led);// Priority 3: environment sensing
+  [stag1] s1=med_Led  &color1=3& hw_state=0 & (sound=0 | move=0)& Rec_motif1=true & staggered=true&turn=0-> ((q_w_high_c1*gamma)*theta)*beta1 : (s1'=finish) + 1-(((q_w_high_c1*gamma)*theta)*beta1) : (s1'=low_Led);// default (empirical)
+  [stag1] s1=med_Led  &color1=3& hw_state=0 & (move=1)& Rec_motif1=true & staggered=true&turn=0-> 1-(((q_w_high_c1*gamma)*theta)*beta1) : (s1'=task_failed) + ((q_w_high_c1*gamma)*theta)*beta1 : (s1'=low_Led);// when movement un-intentionally
 //Med LED Blue
-  [stag1] s1=med_Led   &color1=2& (hw_state=2 |hw_state=1) & Rec_motif1=true & staggered=true -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag1] s1=med_Led  &color1=2& hw_state=0 & (env_state1=2 |env_state1=1)  & (sound=1 | move=1)& Rec_motif1=true & staggered=true-> (s1'=low_Led);// Priority 3: environment sensing
-  [stag1] s1=med_Led  &color1=2& hw_state=0 & (sound=0 | move=0)& Rec_motif1=true & staggered=true-> ((q_b_high_c1*gamma)*theta)*beta1 : (s1'=finish) + 1-(((q_b_high_c1*gamma)*theta)*beta1) : (s1'=low_Led);// default (empirical)
-  [stag1] s1=med_Led  &color1=2& hw_state=0 & (move=1)& Rec_motif1=true & staggered=true-> 1-(((q_b_high_c1*gamma)*theta)*beta1) : (s1'=task_failed) + ((q_b_high_c1*gamma)*theta)*beta1 : (s1'=low_Led);// when movement un-intentionally
+  [stag1] s1=med_Led   &color1=2& (hw_state=2 |hw_state=1) & Rec_motif1=true & staggered=true&turn=0 -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag1] s1=med_Led  &color1=2& hw_state=0 & (env_state1=2 |env_state1=1)  & (sound=1 | move=1)& Rec_motif1=true & staggered=true&turn=0-> (s1'=low_Led);// Priority 3: environment sensing
+  [stag1] s1=med_Led  &color1=2& hw_state=0 & (sound=0 | move=0)& Rec_motif1=true & staggered=true&turn=0-> ((q_b_high_c1*gamma)*theta)*beta1 : (s1'=finish) + 1-(((q_b_high_c1*gamma)*theta)*beta1) : (s1'=low_Led);// default (empirical)
+  [stag1] s1=med_Led  &color1=2& hw_state=0 & (move=1)& Rec_motif1=true & staggered=true&turn=0-> 1-(((q_b_high_c1*gamma)*theta)*beta1) : (s1'=task_failed) + ((q_b_high_c1*gamma)*theta)*beta1 : (s1'=low_Led);// when movement un-intentionally
 //Med LED Red
-  [stag1] s1=med_Led   &color1=1& (hw_state=2 |hw_state=1) & Rec_motif1=true & staggered=true -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag1] s1=med_Led  &color1=1& hw_state=0 & (env_state1=2 |env_state1=1)  & (sound=1 | move=1)& Rec_motif1=true & staggered=true-> (s1'=low_Led);// Priority 3: environment sensing
-  [stag1] s1=med_Led  &color1=1& hw_state=0 & (sound=0 | move=0)& Rec_motif1=true & staggered=true-> ((q_r_high_c1*gamma)*theta)*beta1 : (s1'=finish) + 1-(((q_r_high_c1*gamma)*theta)*beta1) : (s1'=low_Led);// default (empirical)
-  [stag1] s1=med_Led  &color1=1& hw_state=0 & (move=1)& Rec_motif1=true & staggered=true-> 1-(((q_r_high_c1*gamma)*theta)*beta1) : (s1'=task_failed) + ((q_r_high_c1*gamma)*theta)*beta1 : (s1'=low_Led);// when movement un-intentionally
+  [stag1] s1=med_Led   &color1=1& (hw_state=2 |hw_state=1) & Rec_motif1=true & staggered=true&turn=0 -> (s1'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag1] s1=med_Led  &color1=1& hw_state=0 & (env_state1=2 |env_state1=1)  & (sound=1 | move=1)& Rec_motif1=true & staggered=true&turn=0-> (s1'=low_Led);// Priority 3: environment sensing
+  [stag1] s1=med_Led  &color1=1& hw_state=0 & (sound=0 | move=0)& Rec_motif1=true & staggered=true&turn=0-> ((q_r_high_c1*gamma)*theta)*beta1 : (s1'=finish) + 1-(((q_r_high_c1*gamma)*theta)*beta1) : (s1'=low_Led);// default (empirical)
+  [stag1] s1=med_Led  &color1=1& hw_state=0 & (move=1)& Rec_motif1=true & staggered=true&turn=0-> 1-(((q_r_high_c1*gamma)*theta)*beta1) : (s1'=task_failed) + ((q_r_high_c1*gamma)*theta)*beta1 : (s1'=low_Led);// when movement un-intentionally
 
 //low led white
-  [stag1] s1=low_Led &color1=3& (hw_state=2 |env_state1=2) & Rec_motif1=true & staggered=true-> 1-(((q_w_high_c1*gamma)*theta)*beta2) : (s1'=finish) + ((q_w_high_c1*gamma)*theta)*beta2 : (s1'=task_failed); 
-  [stag1] s1=low_Led &color1=3& (hw_state=0 |hw_state=1)& (env_state1=1 |env_state1=0)& Rec_motif1=true & staggered=true-> ((q_w_high_c1*gamma)*theta)*beta2 : (s1'=finish) + 1-(((q_w_high_c1*gamma)*theta)*beta2) : (s1'=task_failed);// default
+  [stag1] s1=low_Led &color1=3& (hw_state=2 |env_state1=2) & Rec_motif1=true & staggered=true&turn=0-> 1-(((q_w_high_c1*gamma)*theta)*beta2) : (s1'=finish) + ((q_w_high_c1*gamma)*theta)*beta2 : (s1'=task_failed); 
+  [stag1] s1=low_Led &color1=3& (hw_state=0 |hw_state=1)& (env_state1=1 |env_state1=0)& Rec_motif1=true & staggered=true&turn=0-> ((q_w_high_c1*gamma)*theta)*beta2 : (s1'=finish) + 1-(((q_w_high_c1*gamma)*theta)*beta2) : (s1'=task_failed);// default
 //low led Blue
-  [stag1] s1=low_Led &color1=2& (hw_state=2 |env_state1=2)& Rec_motif1=true & staggered=true -> 1-(((q_b_high_c1*gamma)*theta)*beta2) : (s1'=finish) + ((q_b_high_c1*gamma)*theta)*beta2 : (s1'=task_failed); 
-  [stag1] s1=low_Led &color1=2& (hw_state=0 |hw_state=1)& (env_state1=1 |env_state1=0)& Rec_motif1=true & staggered=true-> ((q_b_high_c1*gamma)*theta)*beta2 : (s1'=finish) + 1-(((q_b_high_c1*gamma)*theta)*beta2) : (s1'=task_failed);// default
+  [stag1] s1=low_Led &color1=2& (hw_state=2 |env_state1=2)& Rec_motif1=true & staggered=true&turn=0 -> 1-(((q_b_high_c1*gamma)*theta)*beta2) : (s1'=finish) + ((q_b_high_c1*gamma)*theta)*beta2 : (s1'=task_failed); 
+  [stag1] s1=low_Led &color1=2& (hw_state=0 |hw_state=1)& (env_state1=1 |env_state1=0)& Rec_motif1=true & staggered=true&turn=0-> ((q_b_high_c1*gamma)*theta)*beta2 : (s1'=finish) + 1-(((q_b_high_c1*gamma)*theta)*beta2) : (s1'=task_failed);// default
 //low led Red
-   [stag1] s1=low_Led &color1=1& (hw_state=2 |env_state1=2)& Rec_motif1=true & staggered=true -> 1-(((q_r_high_c1*gamma)*theta)*beta2) : (s1'=finish) + ((q_r_high_c1*gamma)*theta)*beta2 : (s1'=task_failed); 
-  [stag1] s1=low_Led &color1=1& (hw_state=0 |hw_state=1)& (env_state1=1 |env_state1=0)& Rec_motif1=true & staggered=true-> ((q_r_high_c1*gamma)*theta)*beta2 : (s1'=finish) + 1-(((q_r_high_c1*gamma)*theta)*beta2) : (s1'=task_failed);// default
+   [stag1] s1=low_Led &color1=1& (hw_state=2 |env_state1=2)& Rec_motif1=true & staggered=true&turn=0 -> 1-(((q_r_high_c1*gamma)*theta)*beta2) : (s1'=finish) + ((q_r_high_c1*gamma)*theta)*beta2 : (s1'=task_failed); 
+  [stag1] s1=low_Led &color1=1& (hw_state=0 |hw_state=1)& (env_state1=1 |env_state1=0)& Rec_motif1=true & staggered=true&turn=0-> ((q_r_high_c1*gamma)*theta)*beta2 : (s1'=finish) + 1-(((q_r_high_c1*gamma)*theta)*beta2) : (s1'=task_failed);// default
 //////////////////////////////
 //finish states 
   [turn1] s1=finish & turn=0 -> (s1'=start_task) ;
   [turn1] s1=task_failed & turn=0  -> (s1'=start_task) ;/// Not sure if i need to put the guard of turn=0 in all state transition when staggered=true?? Going to check this !!
 endmodule
+
+
+
+
 ///////////////////////////////////////////////////////////////////////    CLUSTER2  ///////////////////////////////////////////////////////////////////
 //: Cluster 2 of Blinky Blocks
 module c2
@@ -802,40 +843,40 @@ module c2
   [step] (s2=start_task)& !active2 -> true ;
 
   // Start task (guarded by active1)
-  [step] s2=start_task & active2 -> (s2'=choose_Red) & (color2'=1) ;
-  [step] s2=start_task & active2 -> (s2'=choose_Blue) & (color2'=2) ;
-  [step] s2=start_task & active2 -> (s2'=choose_white) & (color2'=3) ;
-  [step] s2=start_task & active2 -> (s2'=high_pitch) ;
-  [step] s2=start_task & active2 -> (s2'=med_pitch) ;
-  [step] s2=start_task & active2 -> (s2'=low_pitch) ;
-  [sense_both2] s2=start_task & active2 -> (s2'=listen_on_moving_on) ;
-  [sense_mic2] s2=start_task & active2 -> (s2'=listen_on_moving_off) ;
-  [sense_acc2] s2=start_task & active2 -> (s2'=listen_off_moving_on) ;
+  [step] s2=start_task & active2 & staggered=false-> (s2'=choose_Red) & (color2'=1) ;
+  [step] s2=start_task & active2 & staggered=false-> (s2'=choose_Blue) & (color2'=2) ;
+  [step] s2=start_task & active2 & staggered=false-> (s2'=choose_white) & (color2'=3) ;
+  [step] s2=start_task & active2 & staggered=false-> (s2'=high_pitch) ;
+  [step] s2=start_task & active2 & staggered=false-> (s2'=med_pitch) ;
+  [step] s2=start_task & active2 & staggered=false-> (s2'=low_pitch) ;
+  [sense_both2] s2=start_task & active2 & staggered=false-> (s2'=listen_on_moving_on) ;
+  [sense_mic2] s2=start_task & active2 & staggered=false-> (s2'=listen_on_moving_off) ;
+  [sense_acc2] s2=start_task & active2 & staggered=false-> (s2'=listen_off_moving_on) ;
 
   // Color selection
-  [step] s2=choose_Red -> (s2'=high_blink_high_buzz)  ;
-  [step] s2=choose_Red -> (s2'=high_blink_med_buzz) ;
-  [step] s2=choose_Red -> (s2'=med_blink_high_buzz) ;
-  [step] s2=choose_Red -> (s2'=med_blink_med_buzz) ;
-  [step] s2=choose_Red -> (s2'=high_Led) ;
-  [step] s2=choose_Red -> (s2'=med_Led) ;
-  [step] s2=choose_Red -> (s2'=low_Led) ;
+  [step] s2=choose_Red & staggered=false-> (s2'=high_blink_high_buzz)  ;
+  [step] s2=choose_Red & staggered=false-> (s2'=high_blink_med_buzz) ;
+  [step] s2=choose_Red & staggered=false-> (s2'=med_blink_high_buzz) ;
+  [step] s2=choose_Red & staggered=false-> (s2'=med_blink_med_buzz) ;
+  [step] s2=choose_Red & staggered=false-> (s2'=high_Led) ;
+  [step] s2=choose_Red & staggered=false-> (s2'=med_Led) ;
+  [step] s2=choose_Red & staggered=false-> (s2'=low_Led) ;
 
-  [step] s2=choose_Blue -> (s2'=high_blink_high_buzz) ;
-  [step] s2=choose_Blue -> (s2'=high_blink_med_buzz) ;
-  [step] s2=choose_Blue -> (s2'=med_blink_high_buzz) ;
-  [step] s2=choose_Blue -> (s2'=med_blink_med_buzz) ;
-  [step] s2=choose_Blue -> (s2'=high_Led) ;
-  [step] s2=choose_Blue -> (s2'=med_Led) ;
-  [step] s2=choose_Blue -> (s2'=low_Led) ;
+  [step] s2=choose_Blue & staggered=false-> (s2'=high_blink_high_buzz) ;
+  [step] s2=choose_Blue & staggered=false-> (s2'=high_blink_med_buzz) ;
+  [step] s2=choose_Blue & staggered=false-> (s2'=med_blink_high_buzz) ;
+  [step] s2=choose_Blue & staggered=false-> (s2'=med_blink_med_buzz) ;
+  [step] s2=choose_Blue & staggered=false-> (s2'=high_Led) ;
+  [step] s2=choose_Blue & staggered=false-> (s2'=med_Led) ;
+  [step] s2=choose_Blue & staggered=false-> (s2'=low_Led) ;
 
-  [step] s2=choose_white -> (s2'=high_blink_high_buzz) ;
-  [step] s2=choose_white -> (s2'=high_blink_med_buzz) ;
-  [step] s2=choose_white -> (s2'=med_blink_high_buzz) ;
-  [step] s2=choose_white -> (s2'=med_blink_med_buzz) ;
-  [step] s2=choose_white -> (s2'=high_Led) ;
-  [step] s2=choose_white -> (s2'=med_Led) ;
-  [step] s2=choose_white -> (s2'=low_Led) ;
+  [step] s2=choose_white & staggered=false-> (s2'=high_blink_high_buzz) ;
+  [step] s2=choose_white & staggered=false-> (s2'=high_blink_med_buzz) ;
+  [step] s2=choose_white & staggered=false-> (s2'=med_blink_high_buzz) ;
+  [step] s2=choose_white & staggered=false-> (s2'=med_blink_med_buzz) ;
+  [step] s2=choose_white & staggered=false-> (s2'=high_Led) ;
+  [step] s2=choose_white & staggered=false-> (s2'=med_Led) ;
+  [step] s2=choose_white & staggered=false-> (s2'=low_Led) ;
 ////////////////////////////////////
   // Probabilistic transitions (BB1-specific) LINE pattern syncroninzed with other clusters
 ///////////////////////////////////
@@ -1147,312 +1188,351 @@ module c2
   [Task_increment] s2=finish  -> (s2'=start_task) ;
   [Task_increment] s2=task_failed  -> (s2'=start_task) ;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  // Start task (guarded by active1)
+  [stag2] s2=start_task & active2 & staggered=true&turn=1-> (s2'=choose_Red) & (color2'=1) ;
+  [stag2] s2=start_task & active2 & staggered=true&turn=1-> (s2'=choose_Blue) & (color2'=2) ;
+  [stag2] s2=start_task & active2 & staggered=true&turn=1-> (s2'=choose_white) & (color2'=3) ;
+  [stag2] s2=start_task & active2 & staggered=true&turn=1-> (s2'=high_pitch) ;
+  [stag2] s2=start_task & active2 & staggered=true&turn=1-> (s2'=med_pitch) ;
+  [stag2] s2=start_task & active2 & staggered=true&turn=1-> (s2'=low_pitch) ;
+  [sense_both2] s2=start_task & active2 & staggered=true&turn=1-> (s2'=listen_on_moving_on) ;
+  [sense_mic2] s2=start_task & active2 & staggered=true&turn=1-> (s2'=listen_on_moving_off) ;
+  [sense_acc2] s2=start_task & active2 & staggered=true&turn=1-> (s2'=listen_off_moving_on) ;
+
+  // Color selection
+  [stag2] s2=choose_Red & staggered=true&turn=1-> (s2'=high_blink_high_buzz)  ;
+  [stag2] s2=choose_Red & staggered=true&turn=1-> (s2'=high_blink_med_buzz) ;
+  [stag2] s2=choose_Red & staggered=true&turn=1-> (s2'=med_blink_high_buzz) ;
+  [stag2] s2=choose_Red & staggered=true&turn=1-> (s2'=med_blink_med_buzz) ;
+  [stag2] s2=choose_Red & staggered=true&turn=1-> (s2'=high_Led) ;
+  [stag2] s2=choose_Red & staggered=true&turn=1-> (s2'=med_Led) ;
+  [stag2] s2=choose_Red & staggered=true&turn=1-> (s2'=low_Led) ;
+
+  [stag2] s2=choose_Blue & staggered=true&turn=1-> (s2'=high_blink_high_buzz) ;
+  [stag2] s2=choose_Blue & staggered=true&turn=1-> (s2'=high_blink_med_buzz) ;
+  [stag2] s2=choose_Blue & staggered=true&turn=1-> (s2'=med_blink_high_buzz) ;
+  [stag2] s2=choose_Blue & staggered=true&turn=1-> (s2'=med_blink_med_buzz) ;
+  [stag2] s2=choose_Blue & staggered=true&turn=1-> (s2'=high_Led) ;
+  [stag2] s2=choose_Blue & staggered=true&turn=1-> (s2'=med_Led) ;
+  [stag2] s2=choose_Blue & staggered=true&turn=1-> (s2'=low_Led) ;
+
+  [stag2] s2=choose_white & staggered=true&turn=1-> (s2'=high_blink_high_buzz) ;
+  [stag2] s2=choose_white & staggered=true&turn=1-> (s2'=high_blink_med_buzz) ;
+  [stag2] s2=choose_white & staggered=true&turn=1-> (s2'=med_blink_high_buzz) ;
+  [stag2] s2=choose_white & staggered=true&turn=1-> (s2'=med_blink_med_buzz) ;
+  [stag2] s2=choose_white & staggered=true&turn=1-> (s2'=high_Led) ;
+  [stag2] s2=choose_white & staggered=true&turn=1-> (s2'=med_Led) ;
+  [stag2] s2=choose_white & staggered=true&turn=1-> (s2'=low_Led) ;
  // Probabilistic transitions (BB1-specific) LINE pattern staggered with other clusters
 ///////////////////////////////////
+
 //high pitch
-  [stag2] s2=high_pitch & hw_state=2 & Rec_motif2=false & staggered=true -> (s2'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_pitch & hw_state=1 & Rec_motif2=false & staggered=true -> (s2'=med_pitch);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_pitch & hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true ->(1-q_high_pitch_c1)/2 : (s2'=med_pitch) + 1-((1-q_high_pitch_c1)/2) : (s2'=low_pitch);// Priority 3: environment sensing
-  [stag2] s2=high_pitch & hw_state=0 & env_state2= 0 & move=1& Rec_motif2=false & staggered=true->(1-q_high_pitch_c1) : (s2'=task_failed)+ q_high_pitch_c1/2 : (s2'=med_pitch) + q_high_pitch_c1/2 : (s2'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_pitch & hw_state=0 & env_state2=1  & sound=1 & Rec_motif2=false & staggered=true->1-((1-q_high_pitch_c1)/2) : (s2'=med_pitch) + (1-q_high_pitch_c1)/2 : (s2'=low_pitch);
-  [stag2] s2=high_pitch& hw_state=0   & (sound=0 & move=0) & Rec_motif2=false & staggered=true-> q_high_pitch_c1  : (s2'=finish) + (1-q_high_pitch_c1)/2 : (s2'=med_pitch) + (1-q_high_pitch_c1)/2 : (s2'=low_pitch); // default
+  [stag2] s2=high_pitch & hw_state=2 & Rec_motif2=false & staggered=true&turn=1 -> (s2'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_pitch & hw_state=1 & Rec_motif2=false & staggered=true&turn=1 -> (s2'=med_pitch);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_pitch & hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true&turn=1 ->(1-q_high_pitch_c1)/2 : (s2'=med_pitch) + 1-((1-q_high_pitch_c1)/2) : (s2'=low_pitch);// Priority 3: environment sensing
+  [stag2] s2=high_pitch & hw_state=0 & env_state2= 0 & move=1& Rec_motif2=false & staggered=true&turn=1->(1-q_high_pitch_c1) : (s2'=task_failed)+ q_high_pitch_c1/2 : (s2'=med_pitch) + q_high_pitch_c1/2 : (s2'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_pitch & hw_state=0 & env_state2=1  & sound=1 & Rec_motif2=false & staggered=true&turn=1->1-((1-q_high_pitch_c1)/2) : (s2'=med_pitch) + (1-q_high_pitch_c1)/2 : (s2'=low_pitch);
+  [stag2] s2=high_pitch& hw_state=0   & (sound=0 & move=0) & Rec_motif2=false & staggered=true&turn=1-> q_high_pitch_c1  : (s2'=finish) + (1-q_high_pitch_c1)/2 : (s2'=med_pitch) + (1-q_high_pitch_c1)/2 : (s2'=low_pitch); // default
 
 //med pitch
-  [stag2] s2=med_pitch & (hw_state=2 |hw_state=1) & Rec_motif2=false & staggered=true -> (s2'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag2] s2=med_pitch & hw_state=0 & (env_state2=2 |env_state2=1)  &( sound=1 |move=1)& Rec_motif2=false & staggered=true -> (s2'=low_pitch);// Priority 3: environment sensing
-  [stag2] s2=med_pitch & hw_state=0 & env_state2= 0 & move=1& Rec_motif2=false & staggered=true-> 1-(q_high_pitch_c1*beta1) : (s2'=task_failed)+ q_high_pitch_c1*beta1 : (s2'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=med_pitch& hw_state=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true-> q_high_pitch_c1*beta1 : (s2'=finish) + (1-(q_high_pitch_c1*beta1)) : (s2'=low_pitch);// default
+  [stag2] s2=med_pitch & (hw_state=2 |hw_state=1) & Rec_motif2=false & staggered=true&turn=1 -> (s2'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag2] s2=med_pitch & hw_state=0 & (env_state2=2 |env_state2=1)  &( sound=1 |move=1)& Rec_motif2=false & staggered=true&turn=1 -> (s2'=low_pitch);// Priority 3: environment sensing
+  [stag2] s2=med_pitch & hw_state=0 & env_state2= 0 & move=1& Rec_motif2=false & staggered=true&turn=1-> 1-(q_high_pitch_c1*beta1) : (s2'=task_failed)+ q_high_pitch_c1*beta1 : (s2'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=med_pitch& hw_state=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true&turn=1-> q_high_pitch_c1*beta1 : (s2'=finish) + (1-(q_high_pitch_c1*beta1)) : (s2'=low_pitch);// default
 
 //low pitch
-  [stag2] s2=low_pitch & (hw_state=2 |env_state2=2)& Rec_motif2=false & staggered=true -> (1-(q_high_pitch_c1*beta2)) : (s2'=finish) + q_high_pitch_c1*beta2 : (s2'=task_failed); 
-  [stag2] s2=low_pitch & (hw_state=1 |env_state2=1)& Rec_motif2=false & staggered=true -> (1-((q_high_pitch_c1*beta2)/2)) : (s2'=finish) + (q_high_pitch_c1*beta2)/2 : (s2'=task_failed); 
-  [stag2] s2=low_pitch & hw_state=0 & Rec_motif2=false & staggered=true-> q_high_pitch_c1*beta2 : (s2'=finish) + (1-(q_high_pitch_c1*beta2)) : (s2'=task_failed);//even if movement it is already very low consuming and it is the lowest state so failure exist but not as when a higher consuming state
+  [stag2] s2=low_pitch & (hw_state=2 |env_state2=2)& Rec_motif2=false & staggered=true&turn=1 -> (1-(q_high_pitch_c1*beta2)) : (s2'=finish) + q_high_pitch_c1*beta2 : (s2'=task_failed); 
+  [stag2] s2=low_pitch & (hw_state=1 |env_state2=1)& Rec_motif2=false & staggered=true&turn=1 -> (1-((q_high_pitch_c1*beta2)/2)) : (s2'=finish) + (q_high_pitch_c1*beta2)/2 : (s2'=task_failed); 
+  [stag2] s2=low_pitch & hw_state=0 & Rec_motif2=false & staggered=true&turn=1-> q_high_pitch_c1*beta2 : (s2'=finish) + (1-(q_high_pitch_c1*beta2)) : (s2'=task_failed);//even if movement it is already very low consuming and it is the lowest state so failure exist but not as when a higher consuming state
 
 //sensor-environment transition
-  [stag2] s2=listen_on_moving_on & Rec_motif2=false & staggered=true-> 0.95 : (s2'=finish) + 0.05 : (s2'=task_failed);
-  [stag2] s2=listen_on_moving_off & Rec_motif2=false & staggered=true-> 0.95 : (s2'=finish) + 0.05 : (s2'=task_failed);
-  [stag2] s2=listen_off_moving_on& Rec_motif2=false & staggered=true -> 0.95 : (s2'=finish) + 0.05 : (s2'=task_failed);
+  [stag2] s2=listen_on_moving_on & Rec_motif2=false & staggered=true&turn=1-> 0.95 : (s2'=finish) + 0.05 : (s2'=task_failed);
+  [stag2] s2=listen_on_moving_off & Rec_motif2=false & staggered=true&turn=1-> 0.95 : (s2'=finish) + 0.05 : (s2'=task_failed);
+  [stag2] s2=listen_off_moving_on& Rec_motif2=false & staggered=true&turn=1 -> 0.95 : (s2'=finish) + 0.05 : (s2'=task_failed);
 
 //high-high simultaneous actuating white
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=2 & Rec_motif2=false & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=1 & Rec_motif2=false & staggered=true -> 0.5 : (s2'=high_blink_med_buzz) +0.5: (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true->0.5 : (s2'=med_blink_high_buzz) + 0.5 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=false & staggered=true->1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=task_failed)+(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + (((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true->((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=high_blink_med_buzz) + 1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true -> ((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1: (s2'=finish) + (1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=high_blink_med_buzz) + (1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=med_blink_high_buzz) + (1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=med_blink_med_buzz); //default(Empirical)
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=2 & Rec_motif2=false & staggered=true&turn=1 -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=1 & Rec_motif2=false & staggered=true&turn=1 -> 0.5 : (s2'=high_blink_med_buzz) +0.5: (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true&turn=1->0.5 : (s2'=med_blink_high_buzz) + 0.5 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=false & staggered=true&turn=1->1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=task_failed)+(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + (((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true&turn=1->((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=high_blink_med_buzz) + 1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true&turn=1 -> ((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1: (s2'=finish) + (1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=high_blink_med_buzz) + (1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=med_blink_high_buzz) + (1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=med_blink_med_buzz); //default(Empirical)
 //high-high simultaneous actuating blue
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=2 & Rec_motif2=false & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=1 & Rec_motif2=false & staggered=true -> 0.5 : (s2'=high_blink_med_buzz) +0.5: (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true->0.5 : (s2'=med_blink_high_buzz) + 0.5 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=false & staggered=true->1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=task_failed)+(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + (((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true->((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=high_blink_med_buzz) + 1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & (sound=0 & move=0) & Rec_motif2=false & staggered=true-> ((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1: (s2'=finish) + (1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=high_blink_med_buzz) + (1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=med_blink_high_buzz) + (1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=med_blink_med_buzz); //default(Empirical)
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=2 & Rec_motif2=false & staggered=true&turn=1 -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=1 & Rec_motif2=false & staggered=true&turn=1 -> 0.5 : (s2'=high_blink_med_buzz) +0.5: (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true&turn=1->0.5 : (s2'=med_blink_high_buzz) + 0.5 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=false & staggered=true&turn=1->1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=task_failed)+(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + (((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true&turn=1->((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=high_blink_med_buzz) + 1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & (sound=0 & move=0) & Rec_motif2=false & staggered=true&turn=1-> ((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1: (s2'=finish) + (1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=high_blink_med_buzz) + (1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=med_blink_high_buzz) + (1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=med_blink_med_buzz); //default(Empirical)
 //high-high simultaneous actuating RED
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=2 & Rec_motif2=false & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=1 & Rec_motif2=false & staggered=true -> 0.5 : (s2'=high_blink_med_buzz) +0.5: (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true->0.5 : (s2'=med_blink_high_buzz) + 0.5 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=false & staggered=true->1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=task_failed)+(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + (((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true->((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=high_blink_med_buzz) + 1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true -> ((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1: (s2'=finish) + (1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=high_blink_med_buzz) + (1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=med_blink_high_buzz) + (1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=med_blink_med_buzz); //default(Empirical)
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=2 & Rec_motif2=false & staggered=true&turn=1 -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=1 & Rec_motif2=false & staggered=true&turn=1 -> 0.5 : (s2'=high_blink_med_buzz) +0.5: (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true&turn=1->0.5 : (s2'=med_blink_high_buzz) + 0.5 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=false & staggered=true&turn=1->1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=task_failed)+(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + (((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true&turn=1->((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=high_blink_med_buzz) + 1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true&turn=1 -> ((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1: (s2'=finish) + (1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=high_blink_med_buzz) + (1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=med_blink_high_buzz) + (1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1))/3 : (s2'=med_blink_med_buzz); //default(Empirical)
 
 //high-med simultaneous actuating white
-  [stag2] s2=high_blink_med_buzz &color2=3 & hw_state=2& Rec_motif2=false & staggered=true  -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_blink_med_buzz &color2=3 & hw_state=1 & Rec_motif2=false & staggered=true -> 0.5 : (s2'=med_blink_med_buzz) + 0.5 : (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
-  [stag2] s2=high_blink_med_buzz &color2=3& hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true->1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz) + ((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=false & staggered=true->1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=task_failed)+(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + (((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_blink_med_buzz &color2=3& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true->((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1  : (s2'=med_blink_med_buzz) + 1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
-  [stag2] s2=high_blink_med_buzz &color2=3& hw_state=0 & env_state2=0  & (sound=0 & move=0) & Rec_motif2=false & staggered=true-> ((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=finish)  + (1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1))/2 : (s2'=med_blink_high_buzz) + (1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1))/2 : (s2'=med_blink_med_buzz); //default(empirical)
+  [stag2] s2=high_blink_med_buzz &color2=3 & hw_state=2& Rec_motif2=false & staggered=true&turn=1  -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_blink_med_buzz &color2=3 & hw_state=1 & Rec_motif2=false & staggered=true&turn=1 -> 0.5 : (s2'=med_blink_med_buzz) + 0.5 : (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
+  [stag2] s2=high_blink_med_buzz &color2=3& hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true&turn=1->1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz) + ((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=false & staggered=true&turn=1->1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=task_failed)+(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + (((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_blink_med_buzz &color2=3& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true&turn=1->((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1  : (s2'=med_blink_med_buzz) + 1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
+  [stag2] s2=high_blink_med_buzz &color2=3& hw_state=0 & env_state2=0  & (sound=0 & move=0) & Rec_motif2=false & staggered=true&turn=1-> ((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=finish)  + (1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1))/2 : (s2'=med_blink_high_buzz) + (1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1))/2 : (s2'=med_blink_med_buzz); //default(empirical)
  //high-med simultaneous actuating blue
-   [stag2] s2=high_blink_med_buzz &color2=2 & hw_state=2 & Rec_motif2=false & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_blink_med_buzz &color2=2 & hw_state=1 & Rec_motif2=false & staggered=true -> 0.5 : (s2'=med_blink_med_buzz) + 0.5 : (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
-  [stag2] s2=high_blink_med_buzz &color2=2& hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true->1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz) + ((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=false & staggered=true->1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=task_failed)+(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + (((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_blink_med_buzz &color2=2& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true->((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1  : (s2'=med_blink_med_buzz) + 1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
-  [stag2] s2=high_blink_med_buzz &color2=2& hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true -> ((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=finish)  + (1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1))/2 : (s2'=med_blink_high_buzz) + (1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1))/2 : (s2'=med_blink_med_buzz); //default(empirical)
+   [stag2] s2=high_blink_med_buzz &color2=2 & hw_state=2 & Rec_motif2=false & staggered=true&turn=1 -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_blink_med_buzz &color2=2 & hw_state=1 & Rec_motif2=false & staggered=true&turn=1 -> 0.5 : (s2'=med_blink_med_buzz) + 0.5 : (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
+  [stag2] s2=high_blink_med_buzz &color2=2& hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true&turn=1->1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz) + ((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=false & staggered=true&turn=1->1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=task_failed)+(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + (((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_blink_med_buzz &color2=2& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true&turn=1->((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1  : (s2'=med_blink_med_buzz) + 1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
+  [stag2] s2=high_blink_med_buzz &color2=2& hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true&turn=1 -> ((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=finish)  + (1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1))/2 : (s2'=med_blink_high_buzz) + (1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1))/2 : (s2'=med_blink_med_buzz); //default(empirical)
  
 //high-med simultaneous actuating Red
-  [stag2] s2=high_blink_med_buzz &color2=1 & hw_state=2 & Rec_motif2=false & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_blink_med_buzz &color2=1 & hw_state=1 & Rec_motif2=false & staggered=true -> 0.5 : (s2'=med_blink_med_buzz) + 0.5 : (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
-  [stag2] s2=high_blink_med_buzz &color2=1& hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true->1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz) + ((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=false & staggered=true->1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=task_failed)+(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + (((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_blink_med_buzz &color2=1& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true->((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1  : (s2'=med_blink_med_buzz) + 1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
-  [stag2] s2=high_blink_med_buzz &color2=1& hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true -> ((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=finish)  + (1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1))/2 : (s2'=med_blink_high_buzz) + (1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1))/2 : (s2'=med_blink_med_buzz); //default(empirical)
+  [stag2] s2=high_blink_med_buzz &color2=1 & hw_state=2 & Rec_motif2=false & staggered=true&turn=1 -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_blink_med_buzz &color2=1 & hw_state=1 & Rec_motif2=false & staggered=true&turn=1 -> 0.5 : (s2'=med_blink_med_buzz) + 0.5 : (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
+  [stag2] s2=high_blink_med_buzz &color2=1& hw_state=0 & env_state2=2  & move=1& Rec_motif2=false & staggered=true&turn=1->1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz) + ((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=false & staggered=true&turn=1->1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=task_failed)+(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + (((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_blink_med_buzz &color2=1& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true&turn=1->((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1  : (s2'=med_blink_med_buzz) + 1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
+  [stag2] s2=high_blink_med_buzz &color2=1& hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true&turn=1 -> ((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1 : (s2'=finish)  + (1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1))/2 : (s2'=med_blink_high_buzz) + (1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1))/2 : (s2'=med_blink_med_buzz); //default(empirical)
  
 
  //med-high simultaneous actuating white
-  [stag2] s2=med_blink_high_buzz &color2=3 & (hw_state=2 | hw_state=1) & Rec_motif2=false & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=med_blink_high_buzz &color2=3 & hw_state=0 & (env_state2=2 | env_state2=1)   & (sound=1 | move=1)& Rec_motif2=false & staggered=true-> (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=med_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true-> ((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1 : (s2'=finish)  + 1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1) : (s2'=med_blink_med_buzz); //default(empirical)
-  [stag2] s2=med_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & ( move=1)& Rec_motif2=false & staggered=true-> 1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1) : (s2'=task_failed)  + ((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1 : (s2'=med_blink_med_buzz); //when movement un-intentionally
+  [stag2] s2=med_blink_high_buzz &color2=3 & (hw_state=2 | hw_state=1) & Rec_motif2=false & staggered=true&turn=1 -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=med_blink_high_buzz &color2=3 & hw_state=0 & (env_state2=2 | env_state2=1)   & (sound=1 | move=1)& Rec_motif2=false & staggered=true&turn=1-> (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=med_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true&turn=1-> ((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1 : (s2'=finish)  + 1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1) : (s2'=med_blink_med_buzz); //default(empirical)
+  [stag2] s2=med_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & ( move=1)& Rec_motif2=false & staggered=true&turn=1-> 1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1) : (s2'=task_failed)  + ((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1 : (s2'=med_blink_med_buzz); //when movement un-intentionally
  //med-high simultaneous actuating blue
-  [stag2] s2=med_blink_high_buzz &color2=2 & (hw_state=2 | hw_state=1)& Rec_motif2=false & staggered=true  -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=med_blink_high_buzz &color2=2 & hw_state=0 & (env_state2=2 | env_state2=1)   & (sound=1 | move=1)& Rec_motif2=false & staggered=true-> (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=med_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true-> ((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1 : (s2'=finish)  + 1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1) : (s2'=med_blink_med_buzz); //default(empirical)
-  [stag2] s2=med_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & ( move=1)& Rec_motif2=false & staggered=true-> 1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1) : (s2'=task_failed)  + ((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1 : (s2'=med_blink_med_buzz); //when movement un-intentionally
+  [stag2] s2=med_blink_high_buzz &color2=2 & (hw_state=2 | hw_state=1)& Rec_motif2=false & staggered=true&turn=1  -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=med_blink_high_buzz &color2=2 & hw_state=0 & (env_state2=2 | env_state2=1)   & (sound=1 | move=1)& Rec_motif2=false & staggered=true&turn=1-> (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=med_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true&turn=1-> ((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1 : (s2'=finish)  + 1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1) : (s2'=med_blink_med_buzz); //default(empirical)
+  [stag2] s2=med_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & ( move=1)& Rec_motif2=false & staggered=true&turn=1-> 1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1) : (s2'=task_failed)  + ((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1 : (s2'=med_blink_med_buzz); //when movement un-intentionally
  //med-high simultaneous actuating Red
-  [stag2] s2=med_blink_high_buzz &color2=1 & (hw_state=2 | hw_state=1) & Rec_motif2=false & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=med_blink_high_buzz &color2=1 & hw_state=0 & (env_state2=2 | env_state2=1)   & (sound=1 | move=1)& Rec_motif2=false & staggered=true-> (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=med_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true-> ((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1 : (s2'=finish)  + 1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1) : (s2'=med_blink_med_buzz); //default(empirical)
-  [stag2] s2=med_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & ( move=1) & Rec_motif2=false & staggered=true-> 1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1) : (s2'=task_failed)  + ((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1 : (s2'=med_blink_med_buzz); //when movement un-intentionally
+  [stag2] s2=med_blink_high_buzz &color2=1 & (hw_state=2 | hw_state=1) & Rec_motif2=false & staggered=true&turn=1 -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=med_blink_high_buzz &color2=1 & hw_state=0 & (env_state2=2 | env_state2=1)   & (sound=1 | move=1)& Rec_motif2=false & staggered=true&turn=1-> (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=med_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=false & staggered=true&turn=1-> ((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1 : (s2'=finish)  + 1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1) : (s2'=med_blink_med_buzz); //default(empirical)
+  [stag2] s2=med_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & ( move=1) & Rec_motif2=false & staggered=true&turn=1-> 1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1) : (s2'=task_failed)  + ((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta1 : (s2'=med_blink_med_buzz); //when movement un-intentionally
 
 
 
 //med-med simultaneous actuating white
-  [stag2] s2=med_blink_med_buzz &color2=3& (hw_state=2 |env_state2=2)& Rec_motif2=false & staggered=true -> 1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=finish) + (((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=task_failed); 
-  [stag2] s2=med_blink_med_buzz &color2=3& (hw_state=1 |env_state2=1) & Rec_motif2=false & staggered=true-> 0.5 : (s2'=finish) + 0.5 : (s2'=task_failed); 
-  [stag2] s2=med_blink_med_buzz &color2=3& hw_state=0& Rec_motif2=false & staggered=true-> (((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=finish) + 1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=task_failed);//empirical data
+  [stag2] s2=med_blink_med_buzz &color2=3& (hw_state=2 |env_state2=2)& Rec_motif2=false & staggered=true&turn=1 -> 1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=finish) + (((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=task_failed); 
+  [stag2] s2=med_blink_med_buzz &color2=3& (hw_state=1 |env_state2=1) & Rec_motif2=false & staggered=true&turn=1-> 0.5 : (s2'=finish) + 0.5 : (s2'=task_failed); 
+  [stag2] s2=med_blink_med_buzz &color2=3& hw_state=0& Rec_motif2=false & staggered=true&turn=1-> (((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=finish) + 1-(((q_w_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=task_failed);//empirical data
 //med-med simultaneous actuating Blue
-[stag2] s2=med_blink_med_buzz &color2=2& (hw_state=2 |env_state2=2) & Rec_motif2=false & staggered=true-> 1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=finish) + (((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=task_failed); 
-  [stag2] s2=med_blink_med_buzz &color2=2& (hw_state=1 |env_state2=1)& Rec_motif2=false & staggered=true -> 0.5 : (s2'=finish) + 0.5 : (s2'=task_failed); 
-  [stag2] s2=med_blink_med_buzz &color2=2& hw_state=0& Rec_motif2=false & staggered=true-> (((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=finish) + 1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=task_failed);//empirical data
+[stag2] s2=med_blink_med_buzz &color2=2& (hw_state=2 |env_state2=2) & Rec_motif2=false & staggered=true&turn=1-> 1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=finish) + (((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=task_failed); 
+  [stag2] s2=med_blink_med_buzz &color2=2& (hw_state=1 |env_state2=1)& Rec_motif2=false & staggered=true&turn=1 -> 0.5 : (s2'=finish) + 0.5 : (s2'=task_failed); 
+  [stag2] s2=med_blink_med_buzz &color2=2& hw_state=0& Rec_motif2=false & staggered=true&turn=1-> (((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=finish) + 1-(((q_b_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=task_failed);//empirical data
 //med-med simultaneous actuating Red
-  [stag2] s2=med_blink_med_buzz &color2=1& (hw_state=2 |env_state2=2)& Rec_motif2=false & staggered=true -> 1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=finish) + (((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=task_failed); 
-  [stag2] s2=med_blink_med_buzz &color2=1& (hw_state=1 |env_state2=1) & Rec_motif2=false & staggered=true-> 0.5 : (s2'=finish) + 0.5 : (s2'=task_failed); 
-  [stag2] s2=med_blink_med_buzz &color2=1& hw_state=0 & Rec_motif2=false & staggered=true-> (((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=finish) + 1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=task_failed);//empirical data
+  [stag2] s2=med_blink_med_buzz &color2=1& (hw_state=2 |env_state2=2)& Rec_motif2=false & staggered=true&turn=1 -> 1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=finish) + (((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=task_failed); 
+  [stag2] s2=med_blink_med_buzz &color2=1& (hw_state=1 |env_state2=1) & Rec_motif2=false & staggered=true&turn=1-> 0.5 : (s2'=finish) + 0.5 : (s2'=task_failed); 
+  [stag2] s2=med_blink_med_buzz &color2=1& hw_state=0 & Rec_motif2=false & staggered=true&turn=1-> (((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=finish) + 1-(((q_r_high_c1*alpha2)*gamma)*q_high_pitch_c1*beta2) : (s2'=task_failed);//empirical data
 
 //High LED white
-  [stag2] s2=high_Led  &color2=3& hw_state=2 & Rec_motif2=false & staggered=true -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_Led  &color2=3& hw_state=1 & Rec_motif2=false & staggered=true -> (s2'=med_Led);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=2 & move=1& Rec_motif2=false & staggered=true->0.5  : (s2'=med_Led) + 0.5 : (s2'=low_Led);// Priority 3: environment sensing
-  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=0 & move=1& Rec_motif2=false & staggered=true->(1-((q_w_high_c1*alpha2)*gamma)) : (s2'=task_failed)  +((q_w_high_c1*alpha2)*gamma)/2  : (s2'=med_Led) + ((q_w_high_c1*alpha2)*gamma)/2 : (s2'=low_Led);// when movement un-intentionally
-  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true->0.5 : (s2'=med_Led) + 0.5 : (s2'=low_Led);
-  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=0 & (sound=0 & move=0) & Rec_motif2=false & staggered=true-> ((q_w_high_c1*alpha2)*gamma) : (s2'=finish) + (1-((q_w_high_c1*alpha2)*gamma))/2 : (s2'=med_Led) + (1-((q_w_high_c1*alpha2)*gamma))/2 : (s2'=low_Led); // default (empirical)
+  [stag2] s2=high_Led  &color2=3& hw_state=2 & Rec_motif2=false & staggered=true&turn=1 -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_Led  &color2=3& hw_state=1 & Rec_motif2=false & staggered=true&turn=1 -> (s2'=med_Led);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=2 & move=1& Rec_motif2=false & staggered=true&turn=1->0.5  : (s2'=med_Led) + 0.5 : (s2'=low_Led);// Priority 3: environment sensing
+  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=0 & move=1& Rec_motif2=false & staggered=true&turn=1->(1-((q_w_high_c1*alpha2)*gamma)) : (s2'=task_failed)  +((q_w_high_c1*alpha2)*gamma)/2  : (s2'=med_Led) + ((q_w_high_c1*alpha2)*gamma)/2 : (s2'=low_Led);// when movement un-intentionally
+  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true&turn=1->0.5 : (s2'=med_Led) + 0.5 : (s2'=low_Led);
+  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=0 & (sound=0 & move=0) & Rec_motif2=false & staggered=true&turn=1-> ((q_w_high_c1*alpha2)*gamma) : (s2'=finish) + (1-((q_w_high_c1*alpha2)*gamma))/2 : (s2'=med_Led) + (1-((q_w_high_c1*alpha2)*gamma))/2 : (s2'=low_Led); // default (empirical)
 //High LED Blue
-  [stag2] s2=high_Led  &color2=2& hw_state=2 & Rec_motif2=false & staggered=true -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_Led  &color2=2& hw_state=1 & Rec_motif2=false & staggered=true -> (s2'=med_Led);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=2 & move=1& Rec_motif2=false & staggered=true->0.5  : (s2'=med_Led) + 0.5 : (s2'=low_Led);// Priority 3: environment sensing
-  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=0 & move=1& Rec_motif2=false & staggered=true->(1-((q_b_high_c1*alpha2)*gamma)) : (s2'=task_failed)  +((q_b_high_c1*alpha2)*gamma)/2  : (s2'=med_Led) + ((q_b_high_c1*alpha2)*gamma)/2 : (s2'=low_Led);// when movement un-intentionally
-  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true->0.5 : (s2'=med_Led) + 0.5 : (s2'=low_Led);
-  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=0 & (sound=0 & move=0)& Rec_motif2=false & staggered=true -> ((q_b_high_c1*alpha2)*gamma) : (s2'=finish) + (1-((q_b_high_c1*alpha2)*gamma))/2 : (s2'=med_Led) + (1-((q_b_high_c1*alpha2)*gamma))/2 : (s2'=low_Led); // default (empirical)
+  [stag2] s2=high_Led  &color2=2& hw_state=2 & Rec_motif2=false & staggered=true&turn=1 -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_Led  &color2=2& hw_state=1 & Rec_motif2=false & staggered=true&turn=1 -> (s2'=med_Led);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=2 & move=1& Rec_motif2=false & staggered=true&turn=1->0.5  : (s2'=med_Led) + 0.5 : (s2'=low_Led);// Priority 3: environment sensing
+  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=0 & move=1& Rec_motif2=false & staggered=true&turn=1->(1-((q_b_high_c1*alpha2)*gamma)) : (s2'=task_failed)  +((q_b_high_c1*alpha2)*gamma)/2  : (s2'=med_Led) + ((q_b_high_c1*alpha2)*gamma)/2 : (s2'=low_Led);// when movement un-intentionally
+  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true&turn=1->0.5 : (s2'=med_Led) + 0.5 : (s2'=low_Led);
+  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=0 & (sound=0 & move=0)& Rec_motif2=false & staggered=true&turn=1 -> ((q_b_high_c1*alpha2)*gamma) : (s2'=finish) + (1-((q_b_high_c1*alpha2)*gamma))/2 : (s2'=med_Led) + (1-((q_b_high_c1*alpha2)*gamma))/2 : (s2'=low_Led); // default (empirical)
 //High LED Red
-   [stag2] s2=high_Led  &color2=1& hw_state=2 & Rec_motif2=false & staggered=true -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_Led  &color2=1& hw_state=1 & Rec_motif2=false & staggered=true -> (s2'=med_Led);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=2 & move=1& Rec_motif2=false & staggered=true->0.5  : (s2'=med_Led) + 0.5 : (s2'=low_Led);// Priority 3: environment sensing
-  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=0 & move=1& Rec_motif2=false & staggered=true->(1-((q_r_high_c1*alpha2)*gamma)) : (s2'=task_failed)  +((q_r_high_c1*alpha2)*gamma)/2  : (s2'=med_Led) + ((q_r_high_c1*alpha2)*gamma)/2 : (s2'=low_Led);// when movement un-intentionally
-  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true->0.5 : (s2'=med_Led) + 0.5 : (s2'=low_Led);
-  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=0 & (sound=0 & move=0)& Rec_motif2=false & staggered=true -> ((q_r_high_c1*alpha2)*gamma) : (s2'=finish) + (1-((q_r_high_c1*alpha2)*gamma))/2 : (s2'=med_Led) + (1-((q_r_high_c1*alpha2)*gamma))/2 : (s2'=low_Led); // default (empirical)
+   [stag2] s2=high_Led  &color2=1& hw_state=2 & Rec_motif2=false & staggered=true&turn=1 -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_Led  &color2=1& hw_state=1 & Rec_motif2=false & staggered=true&turn=1 -> (s2'=med_Led);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=2 & move=1& Rec_motif2=false & staggered=true&turn=1->0.5  : (s2'=med_Led) + 0.5 : (s2'=low_Led);// Priority 3: environment sensing
+  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=0 & move=1& Rec_motif2=false & staggered=true&turn=1->(1-((q_r_high_c1*alpha2)*gamma)) : (s2'=task_failed)  +((q_r_high_c1*alpha2)*gamma)/2  : (s2'=med_Led) + ((q_r_high_c1*alpha2)*gamma)/2 : (s2'=low_Led);// when movement un-intentionally
+  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=false & staggered=true&turn=1->0.5 : (s2'=med_Led) + 0.5 : (s2'=low_Led);
+  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=0 & (sound=0 & move=0)& Rec_motif2=false & staggered=true&turn=1 -> ((q_r_high_c1*alpha2)*gamma) : (s2'=finish) + (1-((q_r_high_c1*alpha2)*gamma))/2 : (s2'=med_Led) + (1-((q_r_high_c1*alpha2)*gamma))/2 : (s2'=low_Led); // default (empirical)
 
 //Med LED white
-  [stag2] s2=med_Led  &color2=3& (hw_state=2 |hw_state=1) & Rec_motif2=false & staggered=true -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag2] s2=med_Led  &color2=3& hw_state=0 & (env_state2=2 |env_state2=1)  & (sound=1 | move=1)& Rec_motif2=false & staggered=true-> (s2'=low_Led);// Priority 3: environment sensing
-  [stag2] s2=med_Led  &color2=3& hw_state=0 & (sound=0 | move=0)& Rec_motif2=false & staggered=true-> ((q_w_high_c1*alpha2)*gamma)*beta1 : (s2'=finish) + 1-(((q_w_high_c1*alpha2)*gamma)*beta1) : (s2'=low_Led);// default (empirical)
-  [stag2] s2=med_Led  &color2=3& hw_state=0 & (move=1)& Rec_motif2=false & staggered=true-> 1-(((q_w_high_c1*alpha2)*gamma)*beta1) : (s2'=task_failed) + ((q_w_high_c1*alpha2)*gamma)*beta1 : (s2'=low_Led);// when movement un-intentionally
+  [stag2] s2=med_Led  &color2=3& (hw_state=2 |hw_state=1) & Rec_motif2=false & staggered=true&turn=1 -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag2] s2=med_Led  &color2=3& hw_state=0 & (env_state2=2 |env_state2=1)  & (sound=1 | move=1)& Rec_motif2=false & staggered=true&turn=1-> (s2'=low_Led);// Priority 3: environment sensing
+  [stag2] s2=med_Led  &color2=3& hw_state=0 & (sound=0 | move=0)& Rec_motif2=false & staggered=true&turn=1-> ((q_w_high_c1*alpha2)*gamma)*beta1 : (s2'=finish) + 1-(((q_w_high_c1*alpha2)*gamma)*beta1) : (s2'=low_Led);// default (empirical)
+  [stag2] s2=med_Led  &color2=3& hw_state=0 & (move=1)& Rec_motif2=false & staggered=true&turn=1-> 1-(((q_w_high_c1*alpha2)*gamma)*beta1) : (s2'=task_failed) + ((q_w_high_c1*alpha2)*gamma)*beta1 : (s2'=low_Led);// when movement un-intentionally
 //Med LED Blue
-  [stag2] s2=med_Led   &color2=2& (hw_state=2 |hw_state=1) & Rec_motif2=false & staggered=true -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag2] s2=med_Led  &color2=2& hw_state=0 & (env_state2=2 |env_state2=1)  & (sound=1 | move=1)& Rec_motif2=false & staggered=true-> (s2'=low_Led);// Priority 3: environment sensing
-  [stag2] s2=med_Led  &color2=2& hw_state=0 & (sound=0 | move=0)& Rec_motif2=false & staggered=true-> ((q_b_high_c1*alpha2)*gamma)*beta1 : (s2'=finish) + 1-(((q_b_high_c1*alpha2)*gamma)*beta1) : (s2'=low_Led);// default (empirical)
-  [stag2] s2=med_Led  &color2=2& hw_state=0 & (move=1)& Rec_motif2=false & staggered=true-> 1-(((q_b_high_c1*alpha2)*gamma)*beta1) : (s2'=task_failed) + ((q_b_high_c1*alpha2)*gamma)*beta1 : (s2'=low_Led);// when movement un-intentionally
+  [stag2] s2=med_Led   &color2=2& (hw_state=2 |hw_state=1) & Rec_motif2=false & staggered=true&turn=1 -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag2] s2=med_Led  &color2=2& hw_state=0 & (env_state2=2 |env_state2=1)  & (sound=1 | move=1)& Rec_motif2=false & staggered=true&turn=1-> (s2'=low_Led);// Priority 3: environment sensing
+  [stag2] s2=med_Led  &color2=2& hw_state=0 & (sound=0 | move=0)& Rec_motif2=false & staggered=true&turn=1-> ((q_b_high_c1*alpha2)*gamma)*beta1 : (s2'=finish) + 1-(((q_b_high_c1*alpha2)*gamma)*beta1) : (s2'=low_Led);// default (empirical)
+  [stag2] s2=med_Led  &color2=2& hw_state=0 & (move=1)& Rec_motif2=false & staggered=true&turn=1-> 1-(((q_b_high_c1*alpha2)*gamma)*beta1) : (s2'=task_failed) + ((q_b_high_c1*alpha2)*gamma)*beta1 : (s2'=low_Led);// when movement un-intentionally
 //Med LED Red
-  [stag2] s2=med_Led   &color2=1& (hw_state=2 |hw_state=1) & Rec_motif2=false & staggered=true -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag2] s2=med_Led  &color2=1& hw_state=0 & (env_state2=2 |env_state2=1)  & (sound=1 | move=1)& Rec_motif2=false & staggered=true-> (s2'=low_Led);// Priority 3: environment sensing
-  [stag2] s2=med_Led  &color2=1& hw_state=0 & (sound=0 | move=0)& Rec_motif2=false & staggered=true-> ((q_r_high_c1*alpha2)*gamma)*beta1 : (s2'=finish) + 1-(((q_r_high_c1*alpha2)*gamma)*beta1) : (s2'=low_Led);// default (empirical)
-  [stag2] s2=med_Led  &color2=1& hw_state=0 & (move=1)& Rec_motif2=false & staggered=true-> 1-(((q_r_high_c1*alpha2)*gamma)*beta1) : (s2'=task_failed) + ((q_r_high_c1*alpha2)*gamma)*beta1 : (s2'=low_Led);// when movement un-intentionally
+  [stag2] s2=med_Led   &color2=1& (hw_state=2 |hw_state=1) & Rec_motif2=false & staggered=true&turn=1 -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag2] s2=med_Led  &color2=1& hw_state=0 & (env_state2=2 |env_state2=1)  & (sound=1 | move=1)& Rec_motif2=false & staggered=true&turn=1-> (s2'=low_Led);// Priority 3: environment sensing
+  [stag2] s2=med_Led  &color2=1& hw_state=0 & (sound=0 | move=0)& Rec_motif2=false & staggered=true&turn=1-> ((q_r_high_c1*alpha2)*gamma)*beta1 : (s2'=finish) + 1-(((q_r_high_c1*alpha2)*gamma)*beta1) : (s2'=low_Led);// default (empirical)
+  [stag2] s2=med_Led  &color2=1& hw_state=0 & (move=1)& Rec_motif2=false & staggered=true&turn=1-> 1-(((q_r_high_c1*alpha2)*gamma)*beta1) : (s2'=task_failed) + ((q_r_high_c1*alpha2)*gamma)*beta1 : (s2'=low_Led);// when movement un-intentionally
 
 //low led white
-  [stag2] s2=low_Led &color2=3& (hw_state=2 |env_state2=2) & Rec_motif2=false & staggered=true-> 1-(((q_w_high_c1*alpha2)*gamma)*beta2) : (s2'=finish) + ((q_w_high_c1*alpha2)*gamma)*beta2 : (s2'=task_failed); 
-  [stag2] s2=low_Led &color2=3& (hw_state=0 |hw_state=1)& (env_state2=1 |env_state2=0)& Rec_motif2=false & staggered=true-> ((q_w_high_c1*alpha2)*gamma)*beta2 : (s2'=finish) + 1-(((q_w_high_c1*alpha2)*gamma)*beta2) : (s2'=task_failed);// default
+  [stag2] s2=low_Led &color2=3& (hw_state=2 |env_state2=2) & Rec_motif2=false & staggered=true&turn=1-> 1-(((q_w_high_c1*alpha2)*gamma)*beta2) : (s2'=finish) + ((q_w_high_c1*alpha2)*gamma)*beta2 : (s2'=task_failed); 
+  [stag2] s2=low_Led &color2=3& (hw_state=0 |hw_state=1)& (env_state2=1 |env_state2=0)& Rec_motif2=false & staggered=true&turn=1-> ((q_w_high_c1*alpha2)*gamma)*beta2 : (s2'=finish) + 1-(((q_w_high_c1*alpha2)*gamma)*beta2) : (s2'=task_failed);// default
 //low led Blue
-  [stag2] s2=low_Led &color2=2& (hw_state=2 |env_state2=2)& Rec_motif2=false & staggered=true -> 1-(((q_b_high_c1*alpha2)*gamma)*beta2) : (s2'=finish) + ((q_b_high_c1*alpha2)*gamma)*beta2 : (s2'=task_failed); 
-  [stag2] s2=low_Led &color2=2& (hw_state=0 |hw_state=1)& (env_state2=1 |env_state2=0)& Rec_motif2=false & staggered=true-> ((q_b_high_c1*alpha2)*gamma)*beta2 : (s2'=finish) + 1-(((q_b_high_c1*alpha2)*gamma)*beta2) : (s2'=task_failed);// default
+  [stag2] s2=low_Led &color2=2& (hw_state=2 |env_state2=2)& Rec_motif2=false & staggered=true&turn=1 -> 1-(((q_b_high_c1*alpha2)*gamma)*beta2) : (s2'=finish) + ((q_b_high_c1*alpha2)*gamma)*beta2 : (s2'=task_failed); 
+  [stag2] s2=low_Led &color2=2& (hw_state=0 |hw_state=1)& (env_state2=1 |env_state2=0)& Rec_motif2=false & staggered=true&turn=1-> ((q_b_high_c1*alpha2)*gamma)*beta2 : (s2'=finish) + 1-(((q_b_high_c1*alpha2)*gamma)*beta2) : (s2'=task_failed);// default
 //low led Red
-   [stag2] s2=low_Led &color2=1& (hw_state=2 |env_state2=2)& Rec_motif2=false & staggered=true -> 1-(((q_r_high_c1*alpha2)*gamma)*beta2) : (s2'=finish) + ((q_r_high_c1*alpha2)*gamma)*beta2 : (s2'=task_failed); 
-  [stag2] s2=low_Led &color2=1& (hw_state=0 |hw_state=1)& (env_state2=1 |env_state2=0)& Rec_motif2=false & staggered=true-> ((q_r_high_c1*alpha2)*gamma)*beta2 : (s2'=finish) + 1-(((q_r_high_c1*alpha2)*gamma)*beta2) : (s2'=task_failed);// default
+   [stag2] s2=low_Led &color2=1& (hw_state=2 |env_state2=2)& Rec_motif2=false & staggered=true&turn=1 -> 1-(((q_r_high_c1*alpha2)*gamma)*beta2) : (s2'=finish) + ((q_r_high_c1*alpha2)*gamma)*beta2 : (s2'=task_failed); 
+  [stag2] s2=low_Led &color2=1& (hw_state=0 |hw_state=1)& (env_state2=1 |env_state2=0)& Rec_motif2=false & staggered=true&turn=1-> ((q_r_high_c1*alpha2)*gamma)*beta2 : (s2'=finish) + 1-(((q_r_high_c1*alpha2)*gamma)*beta2) : (s2'=task_failed);// default
 //////////////////////////////
   // Probabilistic transitions (BB1-specific)RECTANGLE pattern staggered with other clusters
 ///////////////////////////////
  //high pitch
-  [stag2] s2=high_pitch & hw_state=2 & Rec_motif2=true & staggered=true -> (s2'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_pitch & hw_state=1 & Rec_motif2=true & staggered=true -> (s2'=med_pitch);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_pitch & hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true ->(1-q_high_pitch_c1)/2 : (s2'=med_pitch) + 1-((1-q_high_pitch_c1)/2) : (s2'=low_pitch);// Priority 3: environment sensing
-  [stag2] s2=high_pitch & hw_state=0 & env_state2= 0 & move=1& Rec_motif2=true & staggered=true->(1-q_high_pitch_c1) : (s2'=task_failed)+ q_high_pitch_c1/2 : (s2'=med_pitch) + q_high_pitch_c1/2 : (s2'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_pitch & hw_state=0 & env_state2=1  & sound=1 & Rec_motif2=true & staggered=true->1-((1-q_high_pitch_c1)/2) : (s2'=med_pitch) + (1-q_high_pitch_c1)/2 : (s2'=low_pitch);
-  [stag2] s2=high_pitch& hw_state=0   & (sound=0 & move=0) & Rec_motif2=true & staggered=true-> q_high_pitch_c1  : (s2'=finish) + (1-q_high_pitch_c1)/2 : (s2'=med_pitch) + (1-q_high_pitch_c1)/2 : (s2'=low_pitch); // default
+  [stag2] s2=high_pitch & hw_state=2 & Rec_motif2=true & staggered=true&turn=1 -> (s2'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_pitch & hw_state=1 & Rec_motif2=true & staggered=true&turn=1-> (s2'=med_pitch);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_pitch & hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true&turn=1 ->(1-q_high_pitch_c1)/2 : (s2'=med_pitch) + 1-((1-q_high_pitch_c1)/2) : (s2'=low_pitch);// Priority 3: environment sensing
+  [stag2] s2=high_pitch & hw_state=0 & env_state2= 0 & move=1& Rec_motif2=true & staggered=true&turn=1->(1-q_high_pitch_c1) : (s2'=task_failed)+ q_high_pitch_c1/2 : (s2'=med_pitch) + q_high_pitch_c1/2 : (s2'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_pitch & hw_state=0 & env_state2=1  & sound=1 & Rec_motif2=true & staggered=true&turn=1->1-((1-q_high_pitch_c1)/2) : (s2'=med_pitch) + (1-q_high_pitch_c1)/2 : (s2'=low_pitch);
+  [stag2] s2=high_pitch& hw_state=0   & (sound=0 & move=0) & Rec_motif2=true & staggered=true&turn=1-> q_high_pitch_c1  : (s2'=finish) + (1-q_high_pitch_c1)/2 : (s2'=med_pitch) + (1-q_high_pitch_c1)/2 : (s2'=low_pitch); // default
 
 //med pitch
-  [stag2] s2=med_pitch & (hw_state=2 |hw_state=1) & Rec_motif2=true & staggered=true -> (s2'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag2] s2=med_pitch & hw_state=0 & (env_state2=2 |env_state2=1)  &( sound=1 |move=1)& Rec_motif2=true & staggered=true -> (s2'=low_pitch);// Priority 3: environment sensing
-  [stag2] s2=med_pitch & hw_state=0 & env_state2= 0 & move=1& Rec_motif2=true & staggered=true-> 1-(q_high_pitch_c1*beta1) : (s2'=task_failed)+ q_high_pitch_c1*beta1 : (s2'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=med_pitch& hw_state=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true-> q_high_pitch_c1*beta1 : (s2'=finish) + (1-(q_high_pitch_c1*beta1)) : (s2'=low_pitch);// default
+  [stag2] s2=med_pitch & (hw_state=2 |hw_state=1) & Rec_motif2=true & staggered=true&turn=1 -> (s2'=low_pitch); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag2] s2=med_pitch & hw_state=0 & (env_state2=2 |env_state2=1)  &( sound=1 |move=1)& Rec_motif2=true & staggered=true&turn=1 -> (s2'=low_pitch);// Priority 3: environment sensing
+  [stag2] s2=med_pitch & hw_state=0 & env_state2= 0 & move=1& Rec_motif2=true & staggered=true&turn=1-> 1-(q_high_pitch_c1*beta1) : (s2'=task_failed)+ q_high_pitch_c1*beta1 : (s2'=low_pitch);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=med_pitch& hw_state=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true&turn=1-> q_high_pitch_c1*beta1 : (s2'=finish) + (1-(q_high_pitch_c1*beta1)) : (s2'=low_pitch);// default
 
 //low pitch
-  [stag2] s2=low_pitch & (hw_state=2 |env_state2=2)& Rec_motif2=true & staggered=true -> (1-(q_high_pitch_c1*beta2)) : (s2'=finish) + q_high_pitch_c1*beta2 : (s2'=task_failed); 
-  [stag2] s2=low_pitch & (hw_state=1 |env_state2=1)& Rec_motif2=true & staggered=true -> (1-((q_high_pitch_c1*beta2)/2)) : (s2'=finish) + (q_high_pitch_c1*beta2)/2 : (s2'=task_failed); 
-  [stag2] s2=low_pitch & hw_state=0 & Rec_motif2=true & staggered=true-> q_high_pitch_c1*beta2 : (s2'=finish) + (1-(q_high_pitch_c1*beta2)) : (s2'=task_failed);//even if movement it is already very low consuming and it is the lowest state so failure exist but not as when a higher consuming state
+  [stag2] s2=low_pitch & (hw_state=2 |env_state2=2)& Rec_motif2=true & staggered=true&turn=1 -> (1-(q_high_pitch_c1*beta2)) : (s2'=finish) + q_high_pitch_c1*beta2 : (s2'=task_failed); 
+  [stag2] s2=low_pitch & (hw_state=1 |env_state2=1)& Rec_motif2=true & staggered=true&turn=1 -> (1-((q_high_pitch_c1*beta2)/2)) : (s2'=finish) + (q_high_pitch_c1*beta2)/2 : (s2'=task_failed); 
+  [stag2] s2=low_pitch & hw_state=0 & Rec_motif2=true & staggered=true&turn=1-> q_high_pitch_c1*beta2 : (s2'=finish) + (1-(q_high_pitch_c1*beta2)) : (s2'=task_failed);//even if movement it is already very low consuming and it is the lowest state so failure exist but not as when a higher consuming state
 
 //sensor-environment transition
-  [stag2] s2=listen_on_moving_on & Rec_motif2=true & staggered=true-> 0.95 : (s2'=finish) + 0.05 : (s2'=task_failed);
-  [stag2] s2=listen_on_moving_off & Rec_motif2=true & staggered=true-> 0.95 : (s2'=finish) + 0.05 : (s2'=task_failed);
-  [stag2] s2=listen_off_moving_on& Rec_motif2=true & staggered=true -> 0.95 : (s2'=finish) + 0.05 : (s2'=task_failed);
+  [stag2] s2=listen_on_moving_on & Rec_motif2=true & staggered=true&turn=1-> 0.95 : (s2'=finish) + 0.05 : (s2'=task_failed);
+  [stag2] s2=listen_on_moving_off & Rec_motif2=true & staggered=true&turn=1-> 0.95 : (s2'=finish) + 0.05 : (s2'=task_failed);
+  [stag2] s2=listen_off_moving_on& Rec_motif2=true & staggered=true&turn=1 -> 0.95 : (s2'=finish) + 0.05 : (s2'=task_failed);
 
 //high-high simultaneous actuating white
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=2 & Rec_motif2=true & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=1 & Rec_motif2=true & staggered=true -> 0.5 : (s2'=high_blink_med_buzz) +0.5: (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true->0.5 : (s2'=med_blink_high_buzz) + 0.5 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=true & staggered=true->1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=task_failed)+((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + ((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true->(((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=high_blink_med_buzz) + 1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true -> (((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1: (s2'=finish) + (1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=high_blink_med_buzz) + (1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=med_blink_high_buzz) + (1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=med_blink_med_buzz); //default(Empirical)
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=2 & Rec_motif2=true & staggered=true&turn=1 -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=1 & Rec_motif2=true & staggered=true&turn=1 -> 0.5 : (s2'=high_blink_med_buzz) +0.5: (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true&turn=1->0.5 : (s2'=med_blink_high_buzz) + 0.5 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=true & staggered=true&turn=1->1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=task_failed)+((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + ((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true&turn=1->(((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=high_blink_med_buzz) + 1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true&turn=1 -> (((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1: (s2'=finish) + (1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=high_blink_med_buzz) + (1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=med_blink_high_buzz) + (1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=med_blink_med_buzz); //default(Empirical)
 //high-high simultaneous actuating blue
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=2 & Rec_motif2=true & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=1 & Rec_motif2=true & staggered=true -> 0.5 : (s2'=high_blink_med_buzz) +0.5: (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true->0.5 : (s2'=med_blink_high_buzz) + 0.5 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=true & staggered=true->1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=task_failed)+((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + ((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true->(((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=high_blink_med_buzz) + 1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & (sound=0 & move=0) & Rec_motif2=true & staggered=true-> (((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1: (s2'=finish) + (1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=high_blink_med_buzz) + (1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=med_blink_high_buzz) + (1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=med_blink_med_buzz); //default(Empirical)
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=2 & Rec_motif2=true & staggered=true&turn=1 -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=1 & Rec_motif2=true & staggered=true&turn=1 -> 0.5 : (s2'=high_blink_med_buzz) +0.5: (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true&turn=1->0.5 : (s2'=med_blink_high_buzz) + 0.5 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=true & staggered=true&turn=1->1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=task_failed)+((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + ((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true&turn=1->(((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=high_blink_med_buzz) + 1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & (sound=0 & move=0) & Rec_motif2=true & staggered=true&turn=1-> (((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1: (s2'=finish) + (1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=high_blink_med_buzz) + (1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=med_blink_high_buzz) + (1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=med_blink_med_buzz); //default(Empirical)
 //high-high simultaneous actuating RED
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=2 & Rec_motif2=true & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=1 & Rec_motif2=true & staggered=true -> 0.5 : (s2'=high_blink_med_buzz) +0.5: (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true->0.5 : (s2'=med_blink_high_buzz) + 0.5 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=true & staggered=true->1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=task_failed)+((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + ((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true->(((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=high_blink_med_buzz) + 1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true -> (((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1: (s2'=finish) + (1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=high_blink_med_buzz) + (1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=med_blink_high_buzz) + (1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=med_blink_med_buzz); //default(Empirical)
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=2 & Rec_motif2=true & staggered=true&turn=1 -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=1 & Rec_motif2=true & staggered=true&turn=1 -> 0.5 : (s2'=high_blink_med_buzz) +0.5: (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true&turn=1->0.5 : (s2'=med_blink_high_buzz) + 0.5 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=true & staggered=true&turn=1->1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=task_failed)+((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + ((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true&turn=1->(((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=high_blink_med_buzz) + 1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true&turn=1 -> (((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1: (s2'=finish) + (1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=high_blink_med_buzz) + (1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=med_blink_high_buzz) + (1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/3 : (s2'=med_blink_med_buzz); //default(Empirical)
 
 //high-med simultaneous actuating white
-  [stag2] s2=high_blink_med_buzz &color2=3 & hw_state=2& Rec_motif2=true & staggered=true  -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_blink_med_buzz &color2=3 & hw_state=1 & Rec_motif2=true & staggered=true -> 0.5 : (s2'=med_blink_med_buzz) + 0.5 : (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
-  [stag2] s2=high_blink_med_buzz &color2=3& hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true->1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz) + (((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=true & staggered=true->1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=task_failed)+((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + ((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_blink_med_buzz &color2=3& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true->(((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1  : (s2'=med_blink_med_buzz) + 1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
-  [stag2] s2=high_blink_med_buzz &color2=3& hw_state=0 & env_state2=0  & (sound=0 & move=0) & Rec_motif2=true & staggered=true-> (((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=finish)  + (1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/2 : (s2'=med_blink_high_buzz) + (1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/2 : (s2'=med_blink_med_buzz); //default(empirical)
+  [stag2] s2=high_blink_med_buzz &color2=3 & hw_state=2& Rec_motif2=true & staggered=true&turn=1-> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_blink_med_buzz &color2=3 & hw_state=1 & Rec_motif2=true & staggered=true&turn=1-> 0.5 : (s2'=med_blink_med_buzz) + 0.5 : (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
+  [stag2] s2=high_blink_med_buzz &color2=3& hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true&turn=1->1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz) + (((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=high_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=true & staggered=true&turn=1->1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=task_failed)+((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + ((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_blink_med_buzz &color2=3& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true&turn=1->(((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1  : (s2'=med_blink_med_buzz) + 1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
+  [stag2] s2=high_blink_med_buzz &color2=3& hw_state=0 & env_state2=0  & (sound=0 & move=0) & Rec_motif2=true & staggered=true&turn=1-> (((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=finish)  + (1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/2 : (s2'=med_blink_high_buzz) + (1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/2 : (s2'=med_blink_med_buzz); //default(empirical)
  //high-med simultaneous actuating blue
-   [stag2] s2=high_blink_med_buzz &color2=2 & hw_state=2 & Rec_motif2=true & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_blink_med_buzz &color2=2 & hw_state=1 & Rec_motif2=true & staggered=true -> 0.5 : (s2'=med_blink_med_buzz) + 0.5 : (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
-  [stag2] s2=high_blink_med_buzz &color2=2& hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true->1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz) + (((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=true & staggered=true->1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=task_failed)+((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + ((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_blink_med_buzz &color2=2& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true->(((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1  : (s2'=med_blink_med_buzz) + 1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
-  [stag2] s2=high_blink_med_buzz &color2=2& hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true -> (((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=finish)  + (1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/2 : (s2'=med_blink_high_buzz) + (1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/2 : (s2'=med_blink_med_buzz); //default(empirical)
+   [stag2] s2=high_blink_med_buzz &color2=2 & hw_state=2 & Rec_motif2=true & staggered=true&turn=1 -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_blink_med_buzz &color2=2 & hw_state=1 & Rec_motif2=true & staggered=true&turn=1 -> 0.5 : (s2'=med_blink_med_buzz) + 0.5 : (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
+  [stag2] s2=high_blink_med_buzz &color2=2& hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true&turn=1->1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz) + (((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=high_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=true & staggered=true&turn=1->1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=task_failed)+((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + ((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_blink_med_buzz &color2=2& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true&turn=1->(((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1  : (s2'=med_blink_med_buzz) + 1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
+  [stag2] s2=high_blink_med_buzz &color2=2& hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true&turn=1-> (((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=finish)  + (1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/2 : (s2'=med_blink_high_buzz) + (1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/2 : (s2'=med_blink_med_buzz); //default(empirical)
  
 //high-med simultaneous actuating Red
-  [stag2] s2=high_blink_med_buzz &color2=1 & hw_state=2 & Rec_motif2=true & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_blink_med_buzz &color2=1 & hw_state=1 & Rec_motif2=true & staggered=true -> 0.5 : (s2'=med_blink_med_buzz) + 0.5 : (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
-  [stag2] s2=high_blink_med_buzz &color2=1& hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true->1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz) + (((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=true & staggered=true->1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=task_failed)+((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + ((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
-  [stag2] s2=high_blink_med_buzz &color2=1& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true->(((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1  : (s2'=med_blink_med_buzz) + 1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
-  [stag2] s2=high_blink_med_buzz &color2=1& hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true -> (((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=finish)  + (1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/2 : (s2'=med_blink_high_buzz) + (1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/2 : (s2'=med_blink_med_buzz); //default(empirical)
+  [stag2] s2=high_blink_med_buzz &color2=1 & hw_state=2 & Rec_motif2=true & staggered=true&turn=1-> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_blink_med_buzz &color2=1 & hw_state=1 & Rec_motif2=true & staggered=true&turn=1-> 0.5 : (s2'=med_blink_med_buzz) + 0.5 : (s2'=med_blink_high_buzz);// Priority 2: hardware MED -> reduce one level /equal probabilities cause it deoends on user preferences
+  [stag2] s2=high_blink_med_buzz &color2=1& hw_state=0 & env_state2=2  & move=1& Rec_motif2=true & staggered=true&turn=1->1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz) + (((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=high_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & move=1& Rec_motif2=true & staggered=true&turn=1->1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=task_failed)+((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_high_buzz) + ((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1)/2 : (s2'=med_blink_med_buzz);// when move (no direct intention of fallback), chance of failure occurs
+  [stag2] s2=high_blink_med_buzz &color2=1& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true&turn=1->(((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1  : (s2'=med_blink_med_buzz) + 1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1) : (s2'=med_blink_high_buzz);
+  [stag2] s2=high_blink_med_buzz &color2=1& hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true&turn=1 -> (((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1 : (s2'=finish)  + (1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/2 : (s2'=med_blink_high_buzz) + (1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1))/2 : (s2'=med_blink_med_buzz); //default(empirical)
  
 
  //med-high simultaneous actuating white
-  [stag2] s2=med_blink_high_buzz &color2=3 & (hw_state=2 | hw_state=1) & Rec_motif2=true & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=med_blink_high_buzz &color2=3 & hw_state=0 & (env_state2=2 | env_state2=1)   & (sound=1 | move=1)& Rec_motif2=true & staggered=true-> (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=med_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true-> (((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1 : (s2'=finish)  + 1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1) : (s2'=med_blink_med_buzz); //default(empirical)
-  [stag2] s2=med_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & ( move=1)& Rec_motif2=true & staggered=true-> 1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1) : (s2'=task_failed)  + (((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1 : (s2'=med_blink_med_buzz); //when movement un-intentionally
+  [stag2] s2=med_blink_high_buzz &color2=3 & (hw_state=2 | hw_state=1) & Rec_motif2=true & staggered=true&turn=1 -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=med_blink_high_buzz &color2=3 & hw_state=0 & (env_state2=2 | env_state2=1)   & (sound=1 | move=1)& Rec_motif2=true & staggered=true&turn=1-> (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=med_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true&turn=1-> (((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1 : (s2'=finish)  + 1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1) : (s2'=med_blink_med_buzz); //default(empirical)
+  [stag2] s2=med_blink_high_buzz &color2=3 & hw_state=0 & env_state2=0  & ( move=1)& Rec_motif2=true & staggered=true&turn=1-> 1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1) : (s2'=task_failed)  + (((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1 : (s2'=med_blink_med_buzz); //when movement un-intentionally
  //med-high simultaneous actuating blue
-  [stag2] s2=med_blink_high_buzz &color2=2 & (hw_state=2 | hw_state=1)& Rec_motif2=true & staggered=true  -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=med_blink_high_buzz &color2=2 & hw_state=0 & (env_state2=2 | env_state2=1)   & (sound=1 | move=1)& Rec_motif2=true & staggered=true-> (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=med_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true-> (((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1 : (s2'=finish)  + 1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1) : (s2'=med_blink_med_buzz); //default(empirical)
-  [stag2] s2=med_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & ( move=1)& Rec_motif2=true & staggered=true-> 1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1) : (s2'=task_failed)  + (((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1 : (s2'=med_blink_med_buzz); //when movement un-intentionally
+  [stag2] s2=med_blink_high_buzz &color2=2 & (hw_state=2 | hw_state=1)& Rec_motif2=true & staggered=true&turn=1  -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=med_blink_high_buzz &color2=2 & hw_state=0 & (env_state2=2 | env_state2=1)   & (sound=1 | move=1)& Rec_motif2=true & staggered=true&turn=1-> (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=med_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true&turn=1-> (((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1 : (s2'=finish)  + 1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1) : (s2'=med_blink_med_buzz); //default(empirical)
+  [stag2] s2=med_blink_high_buzz &color2=2 & hw_state=0 & env_state2=0  & ( move=1)& Rec_motif2=true & staggered=true&turn=1-> 1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1) : (s2'=task_failed)  + (((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1 : (s2'=med_blink_med_buzz); //when movement un-intentionally
  //med-high simultaneous actuating Red
-  [stag2] s2=med_blink_high_buzz &color2=1 & (hw_state=2 | hw_state=1) & Rec_motif2=true & staggered=true -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=med_blink_high_buzz &color2=1 & hw_state=0 & (env_state2=2 | env_state2=1)   & (sound=1 | move=1)& Rec_motif2=true & staggered=true-> (s2'=med_blink_med_buzz);// Priority 3: environment sensing
-  [stag2] s2=med_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true-> (((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1 : (s2'=finish)  + 1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1) : (s2'=med_blink_med_buzz); //default(empirical)
-  [stag2] s2=med_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & ( move=1) & Rec_motif2=true & staggered=true-> 1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1) : (s2'=task_failed)  + (((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1 : (s2'=med_blink_med_buzz); //when movement un-intentionally
+  [stag2] s2=med_blink_high_buzz &color2=1 & (hw_state=2 | hw_state=1) & Rec_motif2=true & staggered=true&turn=1 -> (s2'=med_blink_med_buzz); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=med_blink_high_buzz &color2=1 & hw_state=0 & (env_state2=2 | env_state2=1)   & (sound=1 | move=1)& Rec_motif2=true & staggered=true&turn=1-> (s2'=med_blink_med_buzz);// Priority 3: environment sensing
+  [stag2] s2=med_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & (sound=0 & move=0)& Rec_motif2=true & staggered=true&turn=1-> (((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1 : (s2'=finish)  + 1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1) : (s2'=med_blink_med_buzz); //default(empirical)
+  [stag2] s2=med_blink_high_buzz &color2=1 & hw_state=0 & env_state2=0  & ( move=1) & Rec_motif2=true & staggered=true&turn=1-> 1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1) : (s2'=task_failed)  + (((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta1 : (s2'=med_blink_med_buzz); //when movement un-intentionally
 
 
 
 //med-med simultaneous actuating white
-  [stag2] s2=med_blink_med_buzz &color2=3& (hw_state=2 |env_state2=2)& Rec_motif2=true & staggered=true -> 1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=finish) + ((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=task_failed); 
-  [stag2] s2=med_blink_med_buzz &color2=3& (hw_state=1 |env_state2=1) & Rec_motif2=true & staggered=true-> 0.5 : (s2'=finish) + 0.5 : (s2'=task_failed); 
-  [stag2] s2=med_blink_med_buzz &color2=3& hw_state=0& Rec_motif2=true & staggered=true-> ((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=finish) + 1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=task_failed);//empirical data
+  [stag2] s2=med_blink_med_buzz &color2=3& (hw_state=2 |env_state2=2)& Rec_motif2=true & staggered=true&turn=1 -> 1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=finish) + ((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=task_failed); 
+  [stag2] s2=med_blink_med_buzz &color2=3& (hw_state=1 |env_state2=1) & Rec_motif2=true & staggered=true&turn=1-> 0.5 : (s2'=finish) + 0.5 : (s2'=task_failed); 
+  [stag2] s2=med_blink_med_buzz &color2=3& hw_state=0& Rec_motif2=true & staggered=true&turn=1-> ((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=finish) + 1-((((q_w_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=task_failed);//empirical data
 //med-med simultaneous actuating Blue
-[stag2] s2=med_blink_med_buzz &color2=2& (hw_state=2 |env_state2=2) & Rec_motif2=true & staggered=true-> 1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=finish) + ((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=task_failed); 
-  [stag2] s2=med_blink_med_buzz &color2=2& (hw_state=1 |env_state2=1)& Rec_motif2=true & staggered=true -> 0.5 : (s2'=finish) + 0.5 : (s2'=task_failed); 
-  [stag2] s2=med_blink_med_buzz &color2=2& hw_state=0& Rec_motif2=true & staggered=true-> ((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=finish) + 1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=task_failed);//empirical data
+[stag2] s2=med_blink_med_buzz &color2=2& (hw_state=2 |env_state2=2) & Rec_motif2=true & staggered=true&turn=1-> 1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=finish) + ((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=task_failed); 
+  [stag2] s2=med_blink_med_buzz &color2=2& (hw_state=1 |env_state2=1)& Rec_motif2=true & staggered=true&turn=1 -> 0.5 : (s2'=finish) + 0.5 : (s2'=task_failed); 
+  [stag2] s2=med_blink_med_buzz &color2=2& hw_state=0& Rec_motif2=true & staggered=true&turn=1-> ((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=finish) + 1-((((q_b_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=task_failed);//empirical data
 //med-med simultaneous actuating Red
-  [stag2] s2=med_blink_med_buzz &color2=1& (hw_state=2 |env_state2=2)& Rec_motif2=true & staggered=true -> 1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=finish) + ((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=task_failed); 
-  [stag2] s2=med_blink_med_buzz &color2=1& (hw_state=1 |env_state2=1) & Rec_motif2=true & staggered=true-> 0.5 : (s2'=finish) + 0.5 : (s2'=task_failed); 
-  [stag2] s2=med_blink_med_buzz &color2=1& hw_state=0 & Rec_motif2=true & staggered=true-> ((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=finish) + 1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=task_failed);//empirical data
+  [stag2] s2=med_blink_med_buzz &color2=1& (hw_state=2 |env_state2=2)& Rec_motif2=true & staggered=true&turn=1 -> 1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=finish) + ((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=task_failed); 
+  [stag2] s2=med_blink_med_buzz &color2=1& (hw_state=1 |env_state2=1) & Rec_motif2=true & staggered=true&turn=1-> 0.5 : (s2'=finish) + 0.5 : (s2'=task_failed); 
+  [stag2] s2=med_blink_med_buzz &color2=1& hw_state=0 & Rec_motif2=true & staggered=true&turn=1-> ((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=finish) + 1-((((q_r_high_c1*alpha2)*gamma)*theta)*q_high_pitch_c1*beta2) : (s2'=task_failed);//empirical data
 
 //High LED white
-  [stag2] s2=high_Led  &color2=3& hw_state=2 & Rec_motif2=true & staggered=true -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_Led  &color2=3& hw_state=1 & Rec_motif2=true & staggered=true -> (s2'=med_Led);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=2 & move=1& Rec_motif2=true & staggered=true->0.5  : (s2'=med_Led) + 0.5 : (s2'=low_Led);// Priority 3: environment sensing
-  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=0 & move=1& Rec_motif2=true & staggered=true->(1-(((q_w_high_c1*alpha2)*gamma)*theta)) : (s2'=task_failed)  +(((q_w_high_c1*alpha2)*gamma)*theta)/2  : (s2'=med_Led) + (((q_w_high_c1*alpha2)*gamma)*theta)/2 : (s2'=low_Led);// when movement un-intentionally
-  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true->0.5 : (s2'=med_Led) + 0.5 : (s2'=low_Led);
-  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=0 & (sound=0 & move=0) & Rec_motif2=true & staggered=true-> (((q_w_high_c1*alpha2)*gamma)*theta) : (s2'=finish) + (1-(((q_w_high_c1*alpha2)*gamma)*theta))/2 : (s2'=med_Led) + (1-(((q_w_high_c1*alpha2)*gamma)*theta))/2 : (s2'=low_Led); // default (empirical)
+  [stag2] s2=high_Led  &color2=3& hw_state=2 & Rec_motif2=true & staggered=true&turn=1 -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_Led  &color2=3& hw_state=1 & Rec_motif2=true & staggered=true&turn=1 -> (s2'=med_Led);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=2 & move=1& Rec_motif2=true & staggered=true&turn=1->0.5  : (s2'=med_Led) + 0.5 : (s2'=low_Led);// Priority 3: environment sensing
+  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=0 & move=1& Rec_motif2=true & staggered=true&turn=1->(1-(((q_w_high_c1*alpha2)*gamma)*theta)) : (s2'=task_failed)  +(((q_w_high_c1*alpha2)*gamma)*theta)/2  : (s2'=med_Led) + (((q_w_high_c1*alpha2)*gamma)*theta)/2 : (s2'=low_Led);// when movement un-intentionally
+  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true&turn=1->0.5 : (s2'=med_Led) + 0.5 : (s2'=low_Led);
+  [stag2] s2=high_Led  &color2=3& hw_state=0 & env_state2=0 & (sound=0 & move=0) & Rec_motif2=true & staggered=true&turn=1-> (((q_w_high_c1*alpha2)*gamma)*theta) : (s2'=finish) + (1-(((q_w_high_c1*alpha2)*gamma)*theta))/2 : (s2'=med_Led) + (1-(((q_w_high_c1*alpha2)*gamma)*theta))/2 : (s2'=low_Led); // default (empirical)
 //High LED Blue
-  [stag2] s2=high_Led  &color2=2& hw_state=2 & Rec_motif2=true & staggered=true -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_Led  &color2=2& hw_state=1 & Rec_motif2=true & staggered=true -> (s2'=med_Led);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=2 & move=1& Rec_motif2=true & staggered=true->0.5  : (s2'=med_Led) + 0.5 : (s2'=low_Led);// Priority 3: environment sensing
-  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=0 & move=1& Rec_motif2=true & staggered=true->(1-(((q_b_high_c1*alpha2)*gamma)*theta)) : (s2'=task_failed)  +(((q_b_high_c1*alpha2)*gamma)*theta)/2  : (s2'=med_Led) + (((q_b_high_c1*alpha2)*gamma)*theta)/2 : (s2'=low_Led);// when movement un-intentionally
-  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true->0.5 : (s2'=med_Led) + 0.5 : (s2'=low_Led);
-  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=0 & (sound=0 & move=0)& Rec_motif2=true & staggered=true -> (((q_b_high_c1*alpha2)*gamma)*theta) : (s2'=finish) + (1-(((q_b_high_c1*alpha2)*gamma)*theta))/2 : (s2'=med_Led) + (1-(((q_b_high_c1*alpha2)*gamma)*theta))/2 : (s2'=low_Led); // default (empirical)
+  [stag2] s2=high_Led  &color2=2& hw_state=2 & Rec_motif2=true & staggered=true&turn=1 -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_Led  &color2=2& hw_state=1 & Rec_motif2=true & staggered=true&turn=1 -> (s2'=med_Led);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=2 & move=1& Rec_motif2=true & staggered=true&turn=1->0.5  : (s2'=med_Led) + 0.5 : (s2'=low_Led);// Priority 3: environment sensing
+  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=0 & move=1& Rec_motif2=true & staggered=true&turn=1->(1-(((q_b_high_c1*alpha2)*gamma)*theta)) : (s2'=task_failed)  +(((q_b_high_c1*alpha2)*gamma)*theta)/2  : (s2'=med_Led) + (((q_b_high_c1*alpha2)*gamma)*theta)/2 : (s2'=low_Led);// when movement un-intentionally
+  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true&turn=1->0.5 : (s2'=med_Led) + 0.5 : (s2'=low_Led);
+  [stag2] s2=high_Led  &color2=2& hw_state=0 & env_state2=0 & (sound=0 & move=0)& Rec_motif2=true & staggered=true&turn=1 -> (((q_b_high_c1*alpha2)*gamma)*theta) : (s2'=finish) + (1-(((q_b_high_c1*alpha2)*gamma)*theta))/2 : (s2'=med_Led) + (1-(((q_b_high_c1*alpha2)*gamma)*theta))/2 : (s2'=low_Led); // default (empirical)
 //High LED Red
-   [stag2] s2=high_Led  &color2=1& hw_state=2 & Rec_motif2=true & staggered=true -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
-  [stag2] s2=high_Led  &color2=1& hw_state=1 & Rec_motif2=true & staggered=true -> (s2'=med_Led);// Priority 2: hardware MED -> reduce one level
-  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=2 & move=1& Rec_motif2=true & staggered=true->0.5  : (s2'=med_Led) + 0.5 : (s2'=low_Led);// Priority 3: environment sensing
-  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=0 & move=1& Rec_motif2=true & staggered=true->(1-(((q_r_high_c1*alpha2)*gamma)*theta)) : (s2'=task_failed)  +(((q_r_high_c1*alpha2)*gamma)*theta)/2  : (s2'=med_Led) + (((q_r_high_c1*alpha2)*gamma)*theta)/2 : (s2'=low_Led);// when movement un-intentionally
-  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true->0.5 : (s2'=med_Led) + 0.5 : (s2'=low_Led);
-  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=0 & (sound=0 & move=0)& Rec_motif2=true & staggered=true -> (((q_r_high_c1*alpha2)*gamma)*theta) : (s2'=finish) + (1-(((q_r_high_c1*alpha2)*gamma)*theta))/2 : (s2'=med_Led) + (1-(((q_r_high_c1*alpha2)*gamma)*theta))/2 : (s2'=low_Led); // default (empirical)
+   [stag2] s2=high_Led  &color2=1& hw_state=2 & Rec_motif2=true & staggered=true&turn=1 -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade
+  [stag2] s2=high_Led  &color2=1& hw_state=1 & Rec_motif2=true & staggered=true&turn=1 -> (s2'=med_Led);// Priority 2: hardware MED -> reduce one level
+  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=2 & move=1& Rec_motif2=true & staggered=true&turn=1->0.5  : (s2'=med_Led) + 0.5 : (s2'=low_Led);// Priority 3: environment sensing
+  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=0 & move=1& Rec_motif2=true & staggered=true&turn=1->(1-(((q_r_high_c1*alpha2)*gamma)*theta)) : (s2'=task_failed)  +(((q_r_high_c1*alpha2)*gamma)*theta)/2  : (s2'=med_Led) + (((q_r_high_c1*alpha2)*gamma)*theta)/2 : (s2'=low_Led);// when movement un-intentionally
+  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=1  & sound=1& Rec_motif2=true & staggered=true&turn=1->0.5 : (s2'=med_Led) + 0.5 : (s2'=low_Led);
+  [stag2] s2=high_Led  &color2=1& hw_state=0 & env_state2=0 & (sound=0 & move=0)& Rec_motif2=true & staggered=true&turn=1 -> (((q_r_high_c1*alpha2)*gamma)*theta) : (s2'=finish) + (1-(((q_r_high_c1*alpha2)*gamma)*theta))/2 : (s2'=med_Led) + (1-(((q_r_high_c1*alpha2)*gamma)*theta))/2 : (s2'=low_Led); // default (empirical)
 
 //Med LED white
-  [stag2] s2=med_Led  &color2=3& (hw_state=2 |hw_state=1) & Rec_motif2=true & staggered=true -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag2] s2=med_Led  &color2=3& hw_state=0 & (env_state2=2 |env_state2=1)  & (sound=1 | move=1)& Rec_motif2=true & staggered=true-> (s2'=low_Led);// Priority 3: environment sensing
-  [stag2] s2=med_Led  &color2=3& hw_state=0 & (sound=0 | move=0)& Rec_motif2=true & staggered=true-> (((q_w_high_c1*alpha2)*gamma)*theta)*beta1 : (s2'=finish) + 1-((((q_w_high_c1*alpha2)*gamma)*theta)*beta1) : (s2'=low_Led);// default (empirical)
-  [stag2] s2=med_Led  &color2=3& hw_state=0 & (move=1)& Rec_motif2=true & staggered=true-> 1-((((q_w_high_c1*alpha2)*gamma)*theta)*beta1) : (s2'=task_failed) + (((q_w_high_c1*alpha2)*gamma)*theta)*beta1 : (s2'=low_Led);// when movement un-intentionally
+  [stag2] s2=med_Led  &color2=3& (hw_state=2 |hw_state=1) & Rec_motif2=true & staggered=true&turn=1 -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag2] s2=med_Led  &color2=3& hw_state=0 & (env_state2=2 |env_state2=1)  & (sound=1 | move=1)& Rec_motif2=true & staggered=true&turn=1-> (s2'=low_Led);// Priority 3: environment sensing
+  [stag2] s2=med_Led  &color2=3& hw_state=0 & (sound=0 | move=0)& Rec_motif2=true & staggered=true&turn=1-> (((q_w_high_c1*alpha2)*gamma)*theta)*beta1 : (s2'=finish) + 1-((((q_w_high_c1*alpha2)*gamma)*theta)*beta1) : (s2'=low_Led);// default (empirical)
+  [stag2] s2=med_Led  &color2=3& hw_state=0 & (move=1)& Rec_motif2=true & staggered=true&turn=1-> 1-((((q_w_high_c1*alpha2)*gamma)*theta)*beta1) : (s2'=task_failed) + (((q_w_high_c1*alpha2)*gamma)*theta)*beta1 : (s2'=low_Led);// when movement un-intentionally
 //Med LED Blue
-  [stag2] s2=med_Led   &color2=2& (hw_state=2 |hw_state=1) & Rec_motif2=true & staggered=true -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag2] s2=med_Led  &color2=2& hw_state=0 & (env_state2=2 |env_state2=1)  & (sound=1 | move=1)& Rec_motif2=true & staggered=true-> (s2'=low_Led);// Priority 3: environment sensing
-  [stag2] s2=med_Led  &color2=2& hw_state=0 & (sound=0 | move=0)& Rec_motif2=true & staggered=true-> (((q_b_high_c1*alpha2)*gamma)*theta)*beta1 : (s2'=finish) + 1-((((q_b_high_c1*alpha2)*gamma)*theta)*beta1) : (s2'=low_Led);// default (empirical)
-  [stag2] s2=med_Led  &color2=2& hw_state=0 & (move=1)& Rec_motif2=true & staggered=true-> 1-((((q_b_high_c1*alpha2)*gamma)*theta)*beta1) : (s2'=task_failed) + (((q_b_high_c1*alpha2)*gamma)*theta)*beta1 : (s2'=low_Led);// when movement un-intentionally
+  [stag2] s2=med_Led   &color2=2& (hw_state=2 |hw_state=1) & Rec_motif2=true & staggered=true&turn=1 -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag2] s2=med_Led  &color2=2& hw_state=0 & (env_state2=2 |env_state2=1)  & (sound=1 | move=1)& Rec_motif2=true & staggered=true&turn=1-> (s2'=low_Led);// Priority 3: environment sensing
+  [stag2] s2=med_Led  &color2=2& hw_state=0 & (sound=0 | move=0)& Rec_motif2=true & staggered=true&turn=1-> (((q_b_high_c1*alpha2)*gamma)*theta)*beta1 : (s2'=finish) + 1-((((q_b_high_c1*alpha2)*gamma)*theta)*beta1) : (s2'=low_Led);// default (empirical)
+  [stag2] s2=med_Led  &color2=2& hw_state=0 & (move=1)& Rec_motif2=true & staggered=true&turn=1-> 1-((((q_b_high_c1*alpha2)*gamma)*theta)*beta1) : (s2'=task_failed) + (((q_b_high_c1*alpha2)*gamma)*theta)*beta1 : (s2'=low_Led);// when movement un-intentionally
 //Med LED Red
-  [stag2] s2=med_Led   &color2=1& (hw_state=2 |hw_state=1) & Rec_motif2=true & staggered=true -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
-  [stag2] s2=med_Led  &color2=1& hw_state=0 & (env_state2=2 |env_state2=1)  & (sound=1 | move=1)& Rec_motif2=true & staggered=true-> (s2'=low_Led);// Priority 3: environment sensing
-  [stag2] s2=med_Led  &color2=1& hw_state=0 & (sound=0 | move=0)& Rec_motif2=true & staggered=true-> (((q_r_high_c1*alpha2)*gamma)*theta)*beta1 : (s2'=finish) + 1-((((q_r_high_c1*alpha2)*gamma)*theta)*beta1) : (s2'=low_Led);// default (empirical)
-  [stag2] s2=med_Led  &color2=1& hw_state=0 & (move=1)& Rec_motif2=true & staggered=true-> 1-((((q_r_high_c1*alpha2)*gamma)*theta)*beta1) : (s2'=task_failed) + (((q_r_high_c1*alpha2)*gamma)*theta)*beta1 : (s2'=low_Led);// when movement un-intentionally
+  [stag2] s2=med_Led   &color2=1& (hw_state=2 |hw_state=1) & Rec_motif2=true & staggered=true&turn=1 -> (s2'=low_Led); // Priority 1: hardware HIGH -> immediate downgrade // Priority 2: hardware MED -> reduce one level
+  [stag2] s2=med_Led  &color2=1& hw_state=0 & (env_state2=2 |env_state2=1)  & (sound=1 | move=1)& Rec_motif2=true & staggered=true&turn=1-> (s2'=low_Led);// Priority 3: environment sensing
+  [stag2] s2=med_Led  &color2=1& hw_state=0 & (sound=0 | move=0)& Rec_motif2=true & staggered=true&turn=1-> (((q_r_high_c1*alpha2)*gamma)*theta)*beta1 : (s2'=finish) + 1-((((q_r_high_c1*alpha2)*gamma)*theta)*beta1) : (s2'=low_Led);// default (empirical)
+  [stag2] s2=med_Led  &color2=1& hw_state=0 & (move=1)& Rec_motif2=true & staggered=true&turn=1-> 1-((((q_r_high_c1*alpha2)*gamma)*theta)*beta1) : (s2'=task_failed) + (((q_r_high_c1*alpha2)*gamma)*theta)*beta1 : (s2'=low_Led);// when movement un-intentionally
 
 //low led white
-  [stag2] s2=low_Led &color2=3& (hw_state=2 |env_state2=2) & Rec_motif2=true & staggered=true-> 1-((((q_w_high_c1*alpha2)*gamma)*theta)*beta2) : (s2'=finish) + (((q_w_high_c1*alpha2)*gamma)*theta)*beta2 : (s2'=task_failed); 
+  [stag2] s2=low_Led &color2=3& (hw_state=2 |env_state2=2) & Rec_motif2=true & staggered=true&turn=1-> 1-((((q_w_high_c1*alpha2)*gamma)*theta)*beta2) : (s2'=finish) + (((q_w_high_c1*alpha2)*gamma)*theta)*beta2 : (s2'=task_failed); 
   [stag2] s2=low_Led &color2=3& (hw_state=0 |hw_state=1)& (env_state2=1 |env_state2=0)& Rec_motif2=true & staggered=true-> (((q_w_high_c1*alpha2)*gamma)*theta)*beta2 : (s2'=finish) + 1-((((q_w_high_c1*alpha2)*gamma)*theta)*beta2) : (s2'=task_failed);// default
 //low led Blue
-  [stag2] s2=low_Led &color2=2& (hw_state=2 |env_state2=2)& Rec_motif2=true & staggered=true -> 1-((((q_b_high_c1*alpha2)*gamma)*theta)*beta2) : (s2'=finish) + (((q_b_high_c1*alpha2)*gamma)*theta)*beta2 : (s2'=task_failed); 
-  [stag2] s2=low_Led &color2=2& (hw_state=0 |hw_state=1)& (env_state2=1 |env_state2=0)& Rec_motif2=true & staggered=true-> (((q_b_high_c1*alpha2)*gamma)*theta)*beta2 : (s2'=finish) + 1-((((q_b_high_c1*alpha2)*gamma)*theta)*beta2) : (s2'=task_failed);// default
+  [stag2] s2=low_Led &color2=2& (hw_state=2 |env_state2=2)& Rec_motif2=true & staggered=true&turn=1 -> 1-((((q_b_high_c1*alpha2)*gamma)*theta)*beta2) : (s2'=finish) + (((q_b_high_c1*alpha2)*gamma)*theta)*beta2 : (s2'=task_failed); 
+  [stag2] s2=low_Led &color2=2& (hw_state=0 |hw_state=1)& (env_state2=1 |env_state2=0)& Rec_motif2=true & staggered=true&turn=1-> (((q_b_high_c1*alpha2)*gamma)*theta)*beta2 : (s2'=finish) + 1-((((q_b_high_c1*alpha2)*gamma)*theta)*beta2) : (s2'=task_failed);// default
 //low led Red
-   [stag2] s2=low_Led &color2=1& (hw_state=2 |env_state2=2)& Rec_motif2=true & staggered=true -> 1-((((q_r_high_c1*alpha2)*gamma)*theta)*beta2) : (s2'=finish) + (((q_r_high_c1*alpha2)*gamma)*theta)*beta2 : (s2'=task_failed); 
-  [stag2] s2=low_Led &color2=1& (hw_state=0 |hw_state=1)& (env_state2=1 |env_state2=0)& Rec_motif2=true & staggered=true-> (((q_r_high_c1*alpha2)*gamma)*theta)*beta2 : (s2'=finish) + 1-((((q_r_high_c1*alpha2)*gamma)*theta)*beta2) : (s2'=task_failed);// default
+   [stag2] s2=low_Led &color2=1& (hw_state=2 |env_state2=2)& Rec_motif2=true & staggered=true&turn=1 -> 1-((((q_r_high_c1*alpha2)*gamma)*theta)*beta2) : (s2'=finish) + (((q_r_high_c1*alpha2)*gamma)*theta)*beta2 : (s2'=task_failed); 
+  [stag2] s2=low_Led &color2=1& (hw_state=0 |hw_state=1)& (env_state2=1 |env_state2=0)& Rec_motif2=true & staggered=true&turn=1-> (((q_r_high_c1*alpha2)*gamma)*theta)*beta2 : (s2'=finish) + 1-((((q_r_high_c1*alpha2)*gamma)*theta)*beta2) : (s2'=task_failed);// default
 //////////////////////////////
 //finish states 
-  [Task_increment] s2=finish & turn=1 -> (s2'=start_task) ;
-  [Task_increment] s2=task_failed & turn=1  -> (s2'=start_task) ;/// Not sure if i need to put the guard of turn=1 in all state transition when staggered=true?? Going to check this !!
+  [turn2] s2=finish & turn=1 -> (s2'=start_task) ;
+ [turn2] s2=task_failed & turn=1  -> (s2'=start_task) ;/// Not sure if i need to put the guard of turn=1 in all state transition when staggered=true?? Going to check this !!
 endmodule
+
+
 // Energy rewards (scaled by cluster size)
 rewards "energy"
   s1=high_pitch : 2*N1;
