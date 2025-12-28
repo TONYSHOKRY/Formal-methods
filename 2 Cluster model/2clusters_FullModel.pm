@@ -88,13 +88,13 @@ module Environment
   [move_on] move=0 & task_counter<2  &s1!=start_task -> (move'=1);
   [sound_off] sound=1 & task_counter<2  &s1!=start_task -> (sound'=0);
   [move_off] move=1& task_counter<2  &s1!=start_task-> (move'=0);
-  [sense_mic1] s1!=start_task & env_state1!=1  -> (env_state1'=1);
-  [sense_acc1] s1!=start_task & env_state1!=2 -> (env_state1'=2);
-  [sense_both1]s1!=start_task & env_state1!=3 -> (env_state1'=3);
+  [sense_mic1] s1=start_task & env_state1!=1  -> (env_state1'=1);
+  [sense_acc1] s1=start_task & env_state1!=2 -> (env_state1'=2);
+  [sense_both1]s1=start_task & env_state1!=3 -> (env_state1'=3);
 
-  [sense_mic2] s2!=start_task & env_state2!=1 -> (env_state2'=1);
-  [sense_acc2] s2!=start_task & env_state2!=2  -> (env_state2'=2);
-  [sense_both2]s2!=start_task & env_state2!=3  -> (env_state2'=3);
+  [sense_mic2] s2=start_task & env_state2!=1 -> (env_state2'=1);
+  [sense_acc2] s2=start_task & env_state2!=2  -> (env_state2'=2);
+  [sense_both2]s2=start_task & env_state2!=3  -> (env_state2'=3);
   
 // add more syncing action per module yet after detecting you might take action upon the full system or
 //or partially per module
