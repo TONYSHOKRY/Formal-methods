@@ -119,7 +119,6 @@ module Task_Controller
   
   [deactivate_1] (s1=idle) & active1 -> (active1'=false);
   [deactivate_2] (s1=idle&s2=idle) & active2 -> (active2'=false);
-  [deactivate_dummy] (s1=start_task&s2=start_task & sd=0) & activedummy -> (activedummy'=false) &(N1'=10) &(N2'=10) &(N_dummy'=0);
    [Task_increment] task_counter<2 & staggered=false&
         ( (!active1 | (active1  & (s1=finish | s1=task_failed))) |
          (!active2 | (active2  & (s2=finish | s2=task_failed))))  ->
