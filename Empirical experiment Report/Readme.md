@@ -1,1 +1,1 @@
-
+The report presents the instrumentation-driven framework for measuring and monitoring energy consumption, delivering the Adapt report D0.1.b on data collection and data aggregation in modular robotic systems (MRs) representedby Blinky Blocks (BBs).
