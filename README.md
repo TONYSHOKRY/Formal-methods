@@ -4,6 +4,7 @@ This repository contains PRISM models for an energy-aware / self-adaptive Blinky
 It includes:
 - a **single-module** model (baseline),
 - a **two-cluster** model (distributed / clustered behavior),
+- an  empirical instrumentation report
 - a shared set of **properties** that can be checked on both models (same labels).
 - scenario excerpt for the parameter extraction.
 
